@@ -20,6 +20,10 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        /* Ensure modals are scrollable on smaller screens */
+        .modal-scroll-y {
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -180,8 +184,8 @@
             };
 
             return (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform transition-all duration-300 scale-100 opacity-100">
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 modal-scroll-y">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform transition-all duration-300 scale-100 opacity-100 my-8">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold text-gray-800">{mode === 'login' ? 'লগইন করুন' : 'সাইনআপ করুন'}</h2>
                             <button
@@ -377,8 +381,8 @@
             };
 
             return (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg transform transition-all duration-300 scale-100 opacity-100">
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 modal-scroll-y">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg transform transition-all duration-300 scale-100 opacity-100 my-8">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold text-gray-800">{initialData ? 'পোস্ট সম্পাদনা করুন' : 'নতুন পোস্ট করুন'}</h2>
                             <button
@@ -842,7 +846,7 @@
                         <h3 className="text-xl font-bold text-gray-800 mb-4">সমস্ত পোস্ট</h3>
 
                         {/* Filter controls */}
-                        <div className="mb-4 flex space-x-4">
+                        <div className="mb-4 flex flex-wrap gap-2 sm:space-x-4">
                             <button
                                 onClick={() => setFilterStatus('all')}
                                 className={`py-2 px-4 rounded-md text-sm font-medium ${filterStatus === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
@@ -905,7 +909,7 @@
                                         )}
                                         <p className="text-sm mt-2">স্ট্যাটাস: <span className={`font-semibold ${post.status === 'approved' ? 'text-green-500' : post.status === 'pending' ? 'text-yellow-500' : 'text-red-500'}`}>{post.status === 'pending' ? 'পেন্ডিং' : post.status === 'approved' ? 'অনুমোদিত' : 'প্রত্যাখ্যাত'}</span></p>
 
-                                        <div className="flex justify-end space-x-2 mt-3">
+                                        <div className="flex flex-wrap justify-end gap-2 mt-3">
                                             {post.status === 'pending' && (
                                                 <>
                                                     <button
@@ -1373,7 +1377,7 @@
                                     >
                                         {/* Simple gear icon for admin panel */}
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.307 2.572-1.065z"></path>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.307 2.572-1.065z"></path>
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                         </svg>
                                     </button>
