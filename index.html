@@ -1099,7 +1099,7 @@
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-center text-gray-500">কোনো পোস্ট পাওয়া যায়নি।</p>
+                                <p className="text-center text-gray-500">কোনো পোস্ট পাওয়া হয়নি।</p>
                             )}
                         </div> {/* End of scrollable content area */}
                     </div>
@@ -1137,8 +1137,15 @@
                                 <p className="text-gray-600 mb-1"><strong>জেলা:</strong> {post.district}</p>
                                 <p className="text-gray-600 mb-1"><strong>কাজের ধরণ:</strong> {post.jobCategory}</p>
                                 {post.mobileNumber && (
-                                    <p className="text-gray-600 mb-1">
-                                        <strong>মোবাইল নম্বর:</strong> {isLoggedIn ? post.mobileNumber : 'লগইন করুন দেখতে'}
+                                    <p className="text-gray-600 mb-1 flex items-center">
+                                        <strong>মোবাইল নম্বর:</strong> {isLoggedIn ? (
+                                            <a href={`tel:${post.mobileNumber}`} className="text-blue-600 hover:underline flex items-center ml-2">
+                                                {post.mobileNumber}
+                                                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                                </svg>
+                                            </a>
+                                        ) : 'লগইন করুন দেখতে'}
                                     </p>
                                 )}
                                 <p className="text-gray-700 mb-3 whitespace-pre-wrap">{post.description}</p>
@@ -1152,8 +1159,15 @@
                                 <p className="text-gray-600 mb-1"><strong>জেলা:</strong> {post.district}</p>
                                 <p className="text-gray-600 mb-1"><strong>কাজের ধরণ:</strong> {post.jobCategory}</p>
                                 {post.mobileNumber && (
-                                    <p className="text-gray-600 mb-1">
-                                        <strong>মোবাইল নম্বর:</strong> {isLoggedIn ? post.mobileNumber : 'লগইন করুন দেখতে'}
+                                    <p className="text-gray-600 mb-1 flex items-center">
+                                        <strong>মোবাইল নম্বর:</strong> {isLoggedIn ? (
+                                            <a href={`tel:${post.mobileNumber}`} className="text-blue-600 hover:underline flex items-center ml-2">
+                                                {post.mobileNumber}
+                                                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                                </svg>
+                                            </a>
+                                        ) : 'লগইন করুন দেখতে'}
                                     </p>
                                 )}
                                 {post.expectedSalary && <p className="text-green-600 font-semibold">প্রত্যাশিত বেতন: {post.expectedSalary} টাকা</p>}
@@ -1280,27 +1294,14 @@
                 // Get the starting document for the current page from pageStartCursors
                 const startDoc = pageStartCursors[currentPage - 1];
 
+                // Base query: approved posts, ordered by timestamp
                 let q = window.query(
                     postsCollectionRef,
-                    window.where('status', '==', 'approved'), // Only show approved posts to general users
+                    window.where('status', '==', 'approved'),
                     window.orderBy('timestamp', 'desc')
                 );
 
-                // Apply filters
-                if (filterPostType !== 'all') {
-                    q = window.query(q, window.where('postType', '==', filterPostType));
-                }
-                if (filterDivision) {
-                    q = window.query(q, window.where('division', '==', filterDivision));
-                }
-                if (filterDistrict) {
-                    q = window.query(q, window.where('district', '==', filterDistrict));
-                }
-                if (filterJobCategory) {
-                    q = window.query(q, window.where('jobCategory', '==', filterJobCategory));
-                }
-
-                // Apply pagination
+                // Apply pagination limit and startAfter
                 if (startDoc) {
                     q = window.query(q, window.startAfter(startDoc), window.limit(postsPerPage + 1));
                 } else {
@@ -1314,29 +1315,52 @@
                         ...doc.data()
                     }));
 
-                    // Client-side text search filter
-                    if (searchTerm) {
-                        const lowerCaseSearchTerm = searchTerm.toLowerCase();
-                        fetchedPosts = fetchedPosts.filter(post => {
+                    // Apply client-side filters
+                    let filteredClientSide = fetchedPosts.filter(post => {
+                        // Filter by postType
+                        if (filterPostType !== 'all' && post.postType !== filterPostType) {
+                            return false;
+                        }
+                        // Filter by division
+                        if (filterDivision && post.division !== filterDivision) {
+                            return false;
+                        }
+                        // Filter by district
+                        if (filterDistrict && post.district !== filterDistrict) {
+                            return false;
+                        }
+                        // Filter by jobCategory
+                        if (filterJobCategory && post.jobCategory !== filterJobCategory) {
+                            return false;
+                        }
+                        // Filter by search term (title or description/bioSummary)
+                        if (searchTerm) {
+                            const lowerCaseSearchTerm = searchTerm.toLowerCase();
                             const title = post.postType === 'job_sender' ? post.jobTitle : post.desiredJobTitle;
                             const description = post.postType === 'job_sender' ? post.description : post.bioSummary;
-                            return (title && title.toLowerCase().includes(lowerCaseSearchTerm)) ||
-                                   (description && description.toLowerCase().includes(lowerCaseSearchTerm));
-                        });
-                    }
+                            if (!((title && title.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                                  (description && description.toLowerCase().includes(lowerCaseSearchTerm)))) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
 
-                    // Determine if there are more posts than the current page limit, indicating more pages
+                    // Update hasMore based on the original fetchedPosts length (before client-side filtering)
+                    // This is important because hasMore should reflect if there are more *database* pages,
+                    // not just more client-side filtered items.
                     setHasMore(fetchedPosts.length > postsPerPage);
-                    // Slice the array to only show postsPerPage items for the current page
-                    setPosts(fetchedPosts.slice(0, postsPerPage));
 
-                    // If there are more posts and we haven't stored the cursor for the next page yet,
-                    // store the last document of the current page as the start cursor for the next page.
+                    // Set the posts to the client-side filtered results
+                    setPosts(filteredClientSide.slice(0, postsPerPage)); // Still show only `postsPerPage` after client-side filtering
+
+                    // If there are more posts from the database and we haven't stored the cursor for the next page yet,
+                    // store the last document of the original fetched batch as the start cursor for the next page.
                     if (fetchedPosts.length > postsPerPage && pageStartCursors.length <= currentPage) {
                         const nextStartDoc = snapshot.docs[postsPerPage - 1];
                         setPageStartCursors(prev => {
                             const newCursors = [...prev];
-                            newCursors[currentPage] = nextStartDoc; // Store cursor for the next page (currentPage + 1)
+                            newCursors[currentPage] = nextStartDoc;
                             return newCursors;
                         });
                     }
