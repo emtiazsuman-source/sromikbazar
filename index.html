@@ -1578,9 +1578,20 @@
 
                                 {userId ? (
                                     <>
+                                        {/* Post Button in Header */}
+                                        <button
+                                            onClick={() => {
+                                                setEditingPost(null); // Ensure no post is being edited when opening for new post
+                                                setShowPostForm(true);
+                                            }}
+                                            className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-300 text-sm"
+                                        >
+                                            পোস্ট করুন
+                                        </button>
+
                                         {/* Make the welcome message clickable to open profile */}
                                         <span
-                                            className="text-sm font-medium cursor-pointer hover:underline"
+                                            className="text-sm font-medium cursor-pointer hover:underline hidden sm:inline" // Hide on small screens
                                             onClick={() => setShowProfileModal(true)}
                                             title="আমার প্রোফাইল দেখুন"
                                         >
@@ -1588,9 +1599,14 @@
                                         </span>
                                         <button
                                             onClick={handleLogout}
-                                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center"
+                                            title="লগআউট"
                                         >
-                                            লগআউট
+                                            {/* Logout Icon */}
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                            </svg>
+                                            <span className="sr-only">লগআউট</span> {/* Screen reader text */}
                                         </button>
                                     </>
                                 ) : (
@@ -1621,21 +1637,6 @@
                             <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6 shadow-sm">
                                 <p className="font-semibold">ত্রুটি:</p>
                                 <p>{error}</p>
-                            </div>
-                        )}
-
-                        {/* Post New Job/Seeker Button */}
-                        {userId && (
-                            <div className="text-center mb-8">
-                                <button
-                                    onClick={() => {
-                                        setEditingPost(null); // Ensure no post is being edited when opening for new post
-                                        setShowPostForm(true);
-                                    }}
-                                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300"
-                                >
-                                    নতুন পোস্ট করুন
-                                </button>
                             </div>
                         )}
 
