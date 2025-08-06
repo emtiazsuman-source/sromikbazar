@@ -107,26 +107,6 @@
             "ময়মনসিংহ": ["ময়মনসিংহ", "জামালপুর", "নেত্রকোণা", "শেরপুর"]
         };
 
-        // List of Job Categories
-        const JOB_CATEGORIES = [
-            "", // Empty option for default
-            "কৃষি", // Agriculture
-            "ইলেকট্রনিক্স", // Electronics
-            "কাঠমিস্ত্রি", // Carpenter
-            "প্যান্ডেল", // Pandal/Tent work
-            "নির্মাণ", // Construction
-            "পরিবহন", // Transportation
-            "স্বাস্থ্যসেবা", // Healthcare
-            "শিক্ষা", // Education
-            "আইটি", // IT
-            "খুচরা বিক্রয়", // Retail
-            "হোটেল ও রেস্তোরাঁ", // Hotel & Restaurant
-            "গার্মেন্টস", // Garments
-            "নিরাপত্তা", // Security
-            "পরিষ্কার পরিচ্ছন্নতা", // Cleaning
-            "অন্যান্য" // Other
-        ];
-
         /**
          * AuthForm component for handling user login and signup.
          * It's a modal form that toggles between login and signup modes.
@@ -273,7 +253,7 @@
          * It's a modal form that allows users to select between posting a job or a job seeker profile.
          * Added initialData prop for editing existing posts.
          */
-        function PostJobForm({ onClose, onAddJob, initialData = null, onUpdateJob }) {
+        function PostJobForm({ onClose, onAddJob, initialData = null, onUpdateJob, jobCategories }) { // Added jobCategories prop
             const [postType, setPostType] = useState(initialData ? initialData.postType : 'job_sender'); // 'job_sender' for job posting, 'job_receiver' for job seeker profile
 
             // Common fields for Job Sender and Job Receiver
@@ -487,8 +467,9 @@
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                     required
                                 >
-                                    {JOB_CATEGORIES.map((category) => (
-                                        <option key={category} value={category}>{category || "একটি কাজের ধরণ নির্বাচন করুন"}</option>
+                                    <option value="">একটি কাজের ধরণ নির্বাচন করুন</option>
+                                    {jobCategories.map((category) => (
+                                        <option key={category.id} value={category.name}>{category.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -761,18 +742,22 @@
             const [adminError, setAdminError] = useState(null);
             const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
 
+            // State for Job Categories management
+            const [jobCategories, setJobCategories] = useState([]);
+            const [newCategoryName, setNewCategoryName] = useState('');
+            const [categoryManagementError, setCategoryManagementError] = useState(null);
+            const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+            // Fetch all posts for admin view
             useEffect(() => {
                 if (!db || !isAdmin) { // Only fetch if user is admin
                     setLoadingAllPosts(false);
                     return;
                 }
 
-                // Reference to the 'posts' collection in Firestore
                 const postsCollectionRef = window.collection(db, `artifacts/${window.canvasAppId}/public/data/posts`);
-
                 let q = window.query(postsCollectionRef, window.orderBy('timestamp', 'desc'));
 
-                // Apply filter based on selected status
                 if (filterStatus !== 'all') {
                     q = window.query(postsCollectionRef, window.where('status', '==', filterStatus), window.orderBy('timestamp', 'desc'));
                 }
@@ -790,8 +775,82 @@
                     setLoadingAllPosts(false);
                 });
 
-                return () => unsubscribe(); // Clean up listener
-            }, [db, isAdmin, filterStatus]); // Depend on isAdmin and filterStatus
+                return () => unsubscribe();
+            }, [db, isAdmin, filterStatus]);
+
+            // Fetch job categories for admin management
+            useEffect(() => {
+                if (!db || !isAdmin) {
+                    setJobCategories([]);
+                    return;
+                }
+
+                const categoriesCollectionRef = window.collection(db, `artifacts/${window.canvasAppId}/public/data/jobCategories`);
+                const q = window.query(categoriesCollectionRef, window.orderBy('name', 'asc'));
+
+                const unsubscribe = window.onSnapshot(q, (snapshot) => {
+                    const fetchedCategories = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    setJobCategories(fetchedCategories);
+                }, (e) => {
+                    console.error("Error fetching job categories for admin:", e);
+                    setCategoryManagementError("কাজের ধরণ লোড করতে সমস্যা হয়েছে।");
+                });
+
+                return () => unsubscribe();
+            }, [db, isAdmin]);
+
+            // Function to add a new category
+            const handleAddCategory = async () => {
+                if (!db || !isAdmin) {
+                    setCategoryManagementError("আপনার এই কাজটি করার অনুমতি নেই।");
+                    return;
+                }
+                if (!newCategoryName.trim()) {
+                    setCategoryManagementError("কাজের ধরণ খালি রাখা যাবে না।");
+                    return;
+                }
+                if (jobCategories.some(cat => cat.name.toLowerCase() === newCategoryName.trim().toLowerCase())) {
+                    setCategoryManagementError("এই কাজের ধরণটি ইতিমধ্যেই বিদ্যমান।");
+                    return;
+                }
+
+                setIsAddingCategory(true);
+                setCategoryManagementError(null);
+                try {
+                    await window.addDoc(window.collection(db, `artifacts/${window.canvasAppId}/public/data/jobCategories`), {
+                        name: newCategoryName.trim(),
+                        timestamp: window.serverTimestamp()
+                    });
+                    setNewCategoryName('');
+                    console.log("Category added successfully!");
+                } catch (e) {
+                    console.error("Error adding category:", e);
+                    setCategoryManagementError("কাজের ধরণ যোগ করতে সমস্যা হয়েছে: " + e.message);
+                } finally {
+                    setIsAddingCategory(false);
+                }
+            };
+
+            // Function to delete a category
+            const handleDeleteCategory = async (categoryId) => {
+                if (!db || !isAdmin) {
+                    setCategoryManagementError("আপনার এই কাজটি করার অনুমতি নেই।");
+                    return;
+                }
+                if (window.confirm("আপনি কি নিশ্চিত যে আপনি এই কাজের ধরণটি মুছে ফেলতে চান?")) {
+                    setCategoryManagementError(null);
+                    try {
+                        await window.deleteDoc(window.doc(db, `artifacts/${window.canvasAppId}/public/data/jobCategories`, categoryId));
+                        console.log("Category deleted successfully!");
+                    } catch (e) {
+                        console.error("Error deleting category:", e);
+                        setCategoryManagementError("কাজের ধরণ মুছে ফেলতে সমস্যা হয়েছে: " + e.message);
+                    }
+                }
+            };
 
             // Function to update a post's status
             const updatePostStatus = async (postId, newStatus) => {
@@ -842,6 +901,49 @@
                                 {adminError}
                             </div>
                         )}
+
+                        {/* Job Category Management Section */}
+                        <div className="mb-8 p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">কাজের ধরণ ব্যবস্থাপনা</h3>
+                            {categoryManagementError && (
+                                <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm">
+                                    {categoryManagementError}
+                                </div>
+                            )}
+                            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                                <input
+                                    type="text"
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    placeholder="নতুন কাজের ধরণ যোগ করুন"
+                                    className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                                <button
+                                    onClick={handleAddCategory}
+                                    disabled={isAddingCategory || !newCategoryName.trim()}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isAddingCategory ? 'যোগ হচ্ছে...' : 'যোগ করুন'}
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {jobCategories.length > 0 ? (
+                                    jobCategories.map((category) => (
+                                        <div key={category.id} className="flex justify-between items-center bg-white p-2 rounded-md shadow-sm border border-gray-100">
+                                            <span className="text-gray-700 text-sm">{category.name}</span>
+                                            <button
+                                                onClick={() => handleDeleteCategory(category.id)}
+                                                className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 rounded-md transition duration-150 ease-in-out"
+                                            >
+                                                মুছে ফেলুন
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-center text-gray-500 col-span-full">কোনো কাজের ধরণ নেই।</p>
+                                )}
+                            </div>
+                        </div>
 
                         <h3 className="text-xl font-bold text-gray-800 mb-4">সমস্ত পোস্ট</h3>
 
@@ -1019,6 +1121,7 @@
             const [showProfileModal, setShowProfileModal] = useState(false); // Controls visibility of the UserProfileModal
             const [showAdminPanel, setShowAdminPanel] = useState(false); // Controls visibility of the AdminPanelModal
             const [editingPost, setEditingPost] = useState(null); // Stores the post data when editing
+            const [jobCategories, setJobCategories] = useState([]); // State for dynamic job categories
 
             // States for FullPostModal
             const [showFullPostModal, setShowFullPostModal] = useState(false);
@@ -1150,6 +1253,28 @@
                 // Clean up the listener when the component unmounts or dependencies change
                 return () => unsubscribe();
             }, [db, currentPage, pageStartCursors.length]); // userId removed from dependencies
+
+            // Fetch job categories from Firestore
+            useEffect(() => {
+                if (!db) return;
+
+                const categoriesCollectionRef = window.collection(db, `artifacts/${window.canvasAppId}/public/data/jobCategories`);
+                const q = window.query(categoriesCollectionRef, window.orderBy('name', 'asc'));
+
+                const unsubscribe = window.onSnapshot(q, (snapshot) => {
+                    const fetchedCategories = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    setJobCategories(fetchedCategories);
+                }, (e) => {
+                    console.error("Error fetching job categories:", e);
+                    setError("কাজের ধরণ লোড করতে সমস্যা হয়েছে।");
+                });
+
+                return () => unsubscribe();
+            }, [db]);
+
 
             /**
              * Function to add a new post (job or job seeker profile) to Firestore.
@@ -1401,12 +1526,21 @@
                                         </button>
                                     </>
                                 ) : (
-                                    <button
-                                        onClick={() => setShowAuthModal(true)}
-                                        className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
-                                    >
-                                        লগইন/সাইনআপ
-                                    </button>
+                                    <>
+                                        {/* Separate Login and Signup buttons */}
+                                        <button
+                                            onClick={() => { setShowAuthModal(true); setAuthMode('login'); }}
+                                            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                        >
+                                            লগইন
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowAuthModal(true); setAuthMode('signup'); }}
+                                            className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                        >
+                                            সাইনআপ
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -1560,6 +1694,7 @@
                             onAddJob={addJob}
                             initialData={editingPost}
                             onUpdateJob={updateJob}
+                            jobCategories={jobCategories}
                         />
                     )}
 
