@@ -336,7 +336,7 @@
                 if (postType === 'job_sender') {
                     // Required fields for job posting
                     // Changed validation from company to numWorkersNeeded
-                    if (!jobTitle || !numWorkersNeeded || !description) {
+                    if (!jobTitle || !numWorkersNeeded || !description || !mobileNumber) { // mobileNumber is now required
                         setFormError("অনুগ্রহ করে সমস্ত প্রয়োজনীয় ক্ষেত্র পূরণ করুন (চাকরি পোস্ট)।");
                         return;
                     }
@@ -353,7 +353,7 @@
                     };
                 } else { // job_receiver
                     // Updated validation for job_receiver
-                    if (!desiredJobTitle || !numTeamMembers || !bioSummary) {
+                    if (!desiredJobTitle || !numTeamMembers || !mobileNumber) { // mobileNumber is now required
                         setFormError("অনুগ্রহ করে সমস্ত প্রয়োজনীয় ক্ষেত্র পূরণ করুন (চাকরি খুঁজছি)।");
                         return;
                     }
@@ -511,13 +511,14 @@
 
                             {/* Mobile Number Field (Common for both types) */}
                             <div>
-                                <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700 mb-1">মোবাইল নম্বর (ঐচ্ছিক)</label>
+                                <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700 mb-1">মোবাইল নম্বর <span className="text-red-500">*</span></label>
                                 <input
                                     type="tel" // Use type="tel" for phone numbers
                                     id="mobileNumber"
                                     value={mobileNumber}
                                     onChange={(e) => setMobileNumber(e.target.value)}
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    required // Made required
                                 />
                             </div>
 
@@ -575,7 +576,7 @@
                                 <>
                                     {/* Job Receiver Fields */}
                                     <div>
-                                        <label htmlFor="desiredJobTitle" className="block text-sm font-medium text-gray-700 mb-1">কাঙ্ক্ষিত চাকরির শিরোনাম <span className="text-red-500">*</span></label>
+                                        <label htmlFor="desiredJobTitle" className="block text-sm font-medium text-gray-700 mb-1">সংক্ষিপ্ত শিরোনাম <span className="text-red-500">*</span></label> {/* Changed label */}
                                         <input
                                             type="text"
                                             id="desiredJobTitle"
@@ -610,14 +611,14 @@
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="bioSummary" className="block text-sm font-medium text-gray-700 mb-1">সংক্ষিপ্ত বায়ো/রেজুমে সারসংক্ষেপ <span className="text-red-500">*</span></label>
+                                        <label htmlFor="bioSummary" className="block text-sm font-medium text-gray-700 mb-1">বিস্তারিত (ঐচ্ছিক)</label> {/* Changed label and made optional */}
                                         <textarea
                                             id="bioSummary"
                                             value={bioSummary}
                                             onChange={(e) => setBioSummary(e.target.value)}
                                             rows="4"
                                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            required
+                                            // Removed required attribute
                                         ></textarea>
                                     </div>
                                 </>
@@ -1209,6 +1210,13 @@
             const [pageJumpInput, setPageJumpInput] = useState(''); // Input for direct page jump
             const [pageJumpError, setPageJumpError] = useState(null); // Error for page jump
 
+            // New states for search and filters
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterDivision, setFilterDivision] = useState('');
+            const [filterDistrict, setFilterDistrict] = useState('');
+            const [filterJobCategory, setFilterJobCategory] = useState('');
+            const [filterPostType, setFilterPostType] = useState('all'); // 'all', 'job_receiver', 'job_sender'
+
             // Initialize Firebase and set up authentication listener
             useEffect(() => {
                 const initFirebase = async () => {
@@ -1257,7 +1265,7 @@
                 initFirebase();
             }, []); // Empty dependency array ensures this effect runs only once on mount
 
-            // Fetch posts from Firestore with pagination in real-time
+            // Fetch posts from Firestore with pagination and filters in real-time
             useEffect(() => {
                 // Only fetch if db is available (posts are visible to everyone)
                 if (!db) {
@@ -1272,37 +1280,54 @@
                 // Get the starting document for the current page from pageStartCursors
                 const startDoc = pageStartCursors[currentPage - 1];
 
-                let q;
-                // Construct the Firestore query with orderBy, limit, and startAfter for pagination
+                let q = window.query(
+                    postsCollectionRef,
+                    window.where('status', '==', 'approved'), // Only show approved posts to general users
+                    window.orderBy('timestamp', 'desc')
+                );
+
+                // Apply filters
+                if (filterPostType !== 'all') {
+                    q = window.query(q, window.where('postType', '==', filterPostType));
+                }
+                if (filterDivision) {
+                    q = window.query(q, window.where('division', '==', filterDivision));
+                }
+                if (filterDistrict) {
+                    q = window.query(q, window.where('district', '==', filterDistrict));
+                }
+                if (filterJobCategory) {
+                    q = window.query(q, window.where('jobCategory', '==', filterJobCategory));
+                }
+
+                // Apply pagination
                 if (startDoc) {
-                    // For subsequent pages, start after the last document of the previous page
-                    q = window.query(
-                        postsCollectionRef,
-                        window.where('status', '==', 'approved'), // Only show approved posts to general users
-                        window.orderBy('timestamp', 'desc'),
-                        window.startAfter(startDoc),
-                        window.limit(postsPerPage + 1)
-                    );
+                    q = window.query(q, window.startAfter(startDoc), window.limit(postsPerPage + 1));
                 } else {
-                    // For the first page, just limit the results
-                    q = window.query(
-                        postsCollectionRef,
-                        window.where('status', '==', 'approved'), // Only show approved posts to general users
-                        window.orderBy('timestamp', 'desc'),
-                        window.limit(postsPerPage + 1)
-                    );
+                    q = window.query(q, window.limit(postsPerPage + 1));
                 }
 
                 // Set up a real-time listener using onSnapshot
                 const unsubscribe = window.onSnapshot(q, (snapshot) => {
-                    const fetchedPosts = snapshot.docs.map(doc => ({
+                    let fetchedPosts = snapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                     }));
 
+                    // Client-side text search filter
+                    if (searchTerm) {
+                        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+                        fetchedPosts = fetchedPosts.filter(post => {
+                            const title = post.postType === 'job_sender' ? post.jobTitle : post.desiredJobTitle;
+                            const description = post.postType === 'job_sender' ? post.description : post.bioSummary;
+                            return (title && title.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                                   (description && description.toLowerCase().includes(lowerCaseSearchTerm));
+                        });
+                    }
+
                     // Determine if there are more posts than the current page limit, indicating more pages
                     setHasMore(fetchedPosts.length > postsPerPage);
-                    // Slice the array to only show postsPerPage items for thethe current page
+                    // Slice the array to only show postsPerPage items for the current page
                     setPosts(fetchedPosts.slice(0, postsPerPage));
 
                     // If there are more posts and we haven't stored the cursor for the next page yet,
@@ -1322,7 +1347,14 @@
 
                 // Clean up the listener when the component unmounts or dependencies change
                 return () => unsubscribe();
-            }, [db, currentPage, pageStartCursors.length]); // userId removed from dependencies
+            }, [db, currentPage, pageStartCursors.length, filterDivision, filterDistrict, filterJobCategory, filterPostType, searchTerm]); // Added filter dependencies
+
+            // Reset pagination when filters change
+            useEffect(() => {
+                setCurrentPage(1);
+                setPageStartCursors([null]);
+            }, [filterDivision, filterDistrict, filterJobCategory, filterPostType, searchTerm]);
+
 
             // Fetch job categories from Firestore
             useEffect(() => {
@@ -1545,6 +1577,10 @@
                 }
             };
 
+            // Get districts based on the selected filter division
+            const districtsForFilterDivision = filterDivision ? DIVISIONS_DATA[filterDivision] : [];
+
+
             // Display loading state
             if (loading) {
                 return (
@@ -1647,6 +1683,92 @@
                             </div>
                         )}
 
+                        {/* Search and Filter Section */}
+                        <section className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4">পোস্ট খুঁজুন</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {/* Search Input */}
+                                <div className="col-span-full">
+                                    <label htmlFor="searchTerm" className="sr-only">সার্চ করুন</label>
+                                    <input
+                                        type="text"
+                                        id="searchTerm"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="শিরোনাম বা বর্ণনা দিয়ে সার্চ করুন..."
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    />
+                                </div>
+
+                                {/* Post Type Filter */}
+                                <div>
+                                    <label htmlFor="filterPostType" className="block text-sm font-medium text-gray-700 mb-1">পোস্টের ধরণ</label>
+                                    <select
+                                        id="filterPostType"
+                                        value={filterPostType}
+                                        onChange={(e) => setFilterPostType(e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    >
+                                        <option value="all">সকল পোস্ট</option>
+                                        <option value="job_receiver">শ্রমিক</option>
+                                        <option value="job_sender">মালিক</option>
+                                    </select>
+                                </div>
+
+                                {/* Division Filter */}
+                                <div>
+                                    <label htmlFor="filterDivision" className="block text-sm font-medium text-gray-700 mb-1">বিভাগ</label>
+                                    <select
+                                        id="filterDivision"
+                                        value={filterDivision}
+                                        onChange={(e) => {
+                                            setFilterDivision(e.target.value);
+                                            setFilterDistrict(''); // Reset district when division changes
+                                        }}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    >
+                                        <option value="">সকল বিভাগ</option>
+                                        {Object.keys(DIVISIONS_DATA).map((division) => (
+                                            <option key={division} value={division}>{division}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* District Filter */}
+                                <div>
+                                    <label htmlFor="filterDistrict" className="block text-sm font-medium text-gray-700 mb-1">জেলা</label>
+                                    <select
+                                        id="filterDistrict"
+                                        value={filterDistrict}
+                                        onChange={(e) => setFilterDistrict(e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        disabled={!filterDivision} // Disable until division is selected
+                                    >
+                                        <option value="">সকল জেলা</option>
+                                        {districtsForFilterDivision.map((district) => (
+                                            <option key={district} value={district}>{district}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Job Category Filter */}
+                                <div>
+                                    <label htmlFor="filterJobCategory" className="block text-sm font-medium text-gray-700 mb-1">কাজের ধরণ</label>
+                                    <select
+                                        id="filterJobCategory"
+                                        value={filterJobCategory}
+                                        onChange={(e) => setFilterJobCategory(e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    >
+                                        <option value="">সকল ধরণ</option>
+                                        {jobCategories.map((category) => (
+                                            <option key={category.id} value={category.name}>{category.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </section>
+
                         {/* Job Listings */}
                         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {posts.length > 0 ? (
@@ -1673,7 +1795,7 @@
                                                 <h3 className="text-xl font-bold text-purple-700 mb-2">চাকরি খুঁজছি: {post.desiredJobTitle}</h3>
                                                 {/* Display Number of Team Members */}
                                                 <p className="text-gray-600 mb-1"><strong>কর্মী আছে:</strong> {post.numTeamMembers} জন</p>
-                                                <p className="text-gray-600 mb-1"><strong>জেলা:</strong> {post.district}</p>
+                                                <p className="text-gray-600 mb-1"><strong>বিভাগ:</strong> {post.division}</p>
                                                 <p className="text-gray-600 mb-1"><strong>কাজের ধরণ:</strong> {post.jobCategory}</p>
                                                 {post.expectedSalary && <p className="text-green-600 font-semibold">প্রত্যাশিত বেতন: {post.expectedSalary} টাকা</p>}
                                                 <p className="text-gray-700 mt-3 truncate-1-line">{post.bioSummary}</p> {/* Truncate here */}
