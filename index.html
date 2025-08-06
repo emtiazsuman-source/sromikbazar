@@ -1486,45 +1486,52 @@
 
                         {/* Pagination Controls */}
                         {/* Pagination controls are now visible to everyone */}
-                        <div className="flex flex-col sm:flex-row justify-center items-center mt-8 space-y-4 sm:space-y-0 sm:space-x-4">
-                            <button
-                                onClick={goToFirstPage}
-                                disabled={currentPage === 1}
-                                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                প্রথম পৃষ্ঠা
-                            </button>
-                            <button
-                                onClick={goToPreviousPage}
-                                disabled={currentPage === 1}
-                                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                পূর্ববর্তী
-                            </button>
-                            <span className="text-lg font-semibold text-gray-700">
-                                পৃষ্ঠা {currentPage}
-                            </span>
-                            <button
-                                onClick={goToNextPage}
-                                disabled={!hasMore}
-                                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                পরবর্তী
-                            </button>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="number"
-                                    value={pageJumpInput}
-                                    onChange={(e) => setPageJumpInput(e.target.value)}
-                                    placeholder="পৃষ্ঠা #"
-                                    className="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                />
+                        <div className="flex flex-col items-center mt-8 space-y-4">
+                            {/* Previous, Current Page, Next on one line */}
+                            <div className="flex flex-wrap justify-center items-center gap-4">
                                 <button
-                                    onClick={handlePageJump}
-                                    className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out"
+                                    onClick={goToPreviousPage}
+                                    disabled={currentPage === 1}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    যাও
+                                    পূর্ববর্তী
                                 </button>
+                                <span className="text-lg font-semibold text-gray-700">
+                                    পৃষ্ঠা {currentPage}
+                                </span>
+                                <button
+                                    onClick={goToNextPage}
+                                    disabled={!hasMore}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    পরবর্তী
+                                </button>
+                            </div>
+
+                            {/* First Page, Page #, Go on the second line - now smaller and more compact */}
+                            <div className="flex flex-wrap justify-center items-center gap-2 mt-2"> {/* Reduced gap and margin-top */}
+                                <button
+                                    onClick={goToFirstPage}
+                                    disabled={currentPage === 1}
+                                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1 px-2 rounded-md shadow-sm text-xs transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    প্রথম পৃষ্ঠা
+                                </button>
+                                <div className="flex items-center space-x-1"> {/* Reduced space-x */}
+                                    <input
+                                        type="number"
+                                        value={pageJumpInput}
+                                        onChange={(e) => setPageJumpInput(e.target.value)}
+                                        placeholder="পৃষ্ঠা #"
+                                        className="w-20 px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-xs" /* Reduced width, padding, and font size */
+                                    />
+                                    <button
+                                        onClick={handlePageJump}
+                                        className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-1 px-2 rounded-md shadow-sm text-xs transition duration-300 ease-in-out" /* Reduced padding and font size */
+                                    >
+                                        যাও
+                                    </button>
+                                </div>
                             </div>
                             {pageJumpError && (
                                 <p className="text-red-500 text-sm mt-2">{pageJumpError}</p>
