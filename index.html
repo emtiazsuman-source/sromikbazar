@@ -108,6 +108,36 @@
         };
 
         /**
+         * Helper function to format time elapsed since a given timestamp.
+         * @param {Object} timestamp - Firestore Timestamp object.
+         * @returns {string} - Formatted string like "5 মিনিট আগে", "2 ঘণ্টা আগে", "3 দিন আগে".
+         */
+        const formatTimeAgo = (timestamp) => {
+            if (!timestamp || !timestamp.toDate) return '';
+            const now = new Date();
+            const postDate = timestamp.toDate();
+            const diffMs = now.getTime() - postDate.getTime(); // Difference in milliseconds
+
+            const diffMinutes = Math.round(diffMs / (1000 * 60));
+            const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+            if (diffMinutes < 1) {
+                return "এইমাত্র";
+            } else if (diffMinutes < 60) {
+                return `${diffMinutes} মিনিট আগে`;
+            } else if (diffHours < 24) {
+                const remainingMinutes = diffMinutes % 60;
+                if (remainingMinutes > 0) {
+                    return `${diffHours} ঘণ্টা ${remainingMinutes} মিনিট আগে`;
+                }
+                return `${diffHours} ঘণ্টা আগে`;
+            } else {
+                return `${diffDays} দিন আগে`;
+            }
+        };
+
+        /**
          * AuthForm component for handling user login and signup.
          * It's a modal form that toggles between login and signup modes.
          */
@@ -260,6 +290,7 @@
             const [selectedDivision, setSelectedDivision] = useState(initialData ? initialData.division : '');
             const [selectedDistrict, setSelectedDistrict] = useState(initialData ? initialData.district : '');
             const [selectedJobCategory, setSelectedJobCategory] = useState(initialData ? initialData.jobCategory : ''); // State for job category
+            const [mobileNumber, setMobileNumber] = useState(initialData ? initialData.mobileNumber : ''); // New state for mobile number
 
             // State for Job Sender fields
             const [jobTitle, setJobTitle] = useState(initialData && initialData.postType === 'job_sender' ? initialData.jobTitle : '');
@@ -316,7 +347,8 @@
                         salary,
                         division: selectedDivision,
                         district: selectedDistrict,
-                        jobCategory: selectedJobCategory // Add job category
+                        jobCategory: selectedJobCategory, // Add job category
+                        mobileNumber // Include mobile number
                     };
                 } else { // job_receiver
                     // Updated validation for job_receiver
@@ -332,7 +364,8 @@
                         bioSummary,
                         division: selectedDivision,
                         district: selectedDistrict,
-                        jobCategory: selectedJobCategory // Add job category
+                        jobCategory: selectedJobCategory, // Add job category
+                        mobileNumber // Include mobile number
                     };
                 }
 
@@ -340,7 +373,8 @@
                 try {
                     if (initialData) {
                         // If initialData is provided, it's an update operation
-                        await onUpdateJob(initialData.id, jobData);
+                        // Set status to 'pending' when a post is edited
+                        await onUpdateJob(initialData.id, { ...jobData, status: 'pending' });
                     } else {
                         // Otherwise, it's an add operation
                         // New posts start with 'pending' status
@@ -474,6 +508,18 @@
                                 </select>
                             </div>
 
+                            {/* Mobile Number Field (Common for both types) */}
+                            <div>
+                                <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700 mb-1">মোবাইল নম্বর (ঐচ্ছিক)</label>
+                                <input
+                                    type="tel" // Use type="tel" for phone numbers
+                                    id="mobileNumber"
+                                    value={mobileNumber}
+                                    onChange={(e) => setMobileNumber(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                            </div>
+
                             {postType === 'job_sender' ? (
                                 <>
                                     {/* Job Sender Fields */}
@@ -515,11 +561,12 @@
                                     <div>
                                         <label htmlFor="salary" className="block text-sm font-medium text-gray-700 mb-1">বেতন (ঐচ্ছিক)</label>
                                         <input
-                                            type="text"
+                                            type="number"
                                             id="salary"
                                             value={salary}
-                                            onChange={(e) => setSalary(e.target.value)}
+                                            onChange={(e) => setSalary(e.target.value === '' ? '' : Number(e.target.value))}
                                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            min="0"
                                         />
                                     </div>
                                 </>
@@ -553,11 +600,12 @@
                                     <div>
                                         <label htmlFor="expectedSalary" className="block text-sm font-medium text-gray-700 mb-1">প্রত্যাশিত বেতন (ঐচ্ছিক)</label>
                                         <input
-                                            type="text"
+                                            type="number"
                                             id="expectedSalary"
                                             value={expectedSalary}
-                                            onChange={(e) => setExpectedSalary(e.target.value)}
+                                            onChange={(e) => setExpectedSalary(e.target.value === '' ? '' : Number(e.target.value))}
                                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            min="0"
                                         />
                                     </div>
                                     <div>
@@ -689,24 +737,30 @@
                                             <>
                                                 <h4 className="text-lg font-semibold text-blue-600">{post.jobTitle}</h4>
                                                 {/* Display Number of Workers Needed */}
-                                                <p className="text-sm text-gray-600">শ্রমিকের সংখ্যা: {post.numWorkersNeeded}</p>
+                                                <p className="text-sm text-gray-600">শ্রমিক লাগবে: {post.numWorkersNeeded} জন</p>
                                                 <p className="text-sm text-gray-600">বিভাগ: {post.division}, জেলা: {post.district}</p>
                                                 <p className="text-sm text-gray-600">কাজের ধরণ: {post.jobCategory}</p>
+                                                {post.mobileNumber && <p className="text-sm text-gray-600">মোবাইল নম্বর: {post.mobileNumber}</p>} {/* Display mobile number */}
                                                 <p className="text-sm text-gray-700 mt-1">{post.description}</p>
-                                                {post.salary && <p className="text-green-600 text-sm">বেতন: {post.salary}</p>}
+                                                {post.salary && <p className="text-green-600 text-sm">বেতন: {post.salary} টাকা</p>}
                                             </>
                                         ) : (
                                             <>
                                                 <h4 className="text-lg font-semibold text-purple-600">চাকরি খুঁজছি: {post.desiredJobTitle}</h4>
+                                                <p className="text-sm text-gray-600">কর্মী আছে: {post.numTeamMembers} জন</p>
                                                 <p className="text-sm text-gray-600">বিভাগ: {post.division}, জেলা: {post.district}</p>
                                                 <p className="text-sm text-gray-600">কাজের ধরণ: {post.jobCategory}</p>
-                                                {/* Display Number of Team Members */}
-                                                <p className="text-sm text-gray-600">আপনার দলে কর্মী: {post.numTeamMembers}</p>
-                                                {post.expectedSalary && <p className="text-green-600 text-sm">প্রত্যাশিত বেতন: {post.expectedSalary}</p>}
+                                                {post.mobileNumber && <p className="text-sm text-gray-600">মোবাইল নম্বর: {post.mobileNumber}</p>} {/* Display mobile number */}
+                                                {post.expectedSalary && <p className="text-green-600 text-sm">প্রত্যাশিত বেতন: {post.expectedSalary} টাকা</p>}
                                                 <p className="text-sm text-gray-700 mt-1">{post.bioSummary}</p>
                                             </>
                                         )}
                                         <p className="text-xs text-gray-500 mt-3">স্ট্যাটাস: <span className={`font-semibold ${post.status === 'approved' ? 'text-green-500' : post.status === 'pending' ? 'text-yellow-500' : 'text-red-500'}`}>{post.status === 'pending' ? 'পেন্ডিং' : post.status === 'approved' ? 'অনুমোদিত' : 'প্রত্যাখ্যাত'}</span></p>
+                                        {post.timestamp && (
+                                            <p className="text-xs text-gray-500">
+                                                পোস্ট করা হয়েছে: {formatTimeAgo(post.timestamp)}
+                                            </p>
+                                        )}
                                         <div className="flex justify-end space-x-2 mt-3">
                                             <button
                                                 onClick={() => onEditPost(post)}
@@ -987,26 +1041,28 @@
                                         {post.postType === 'job_sender' ? (
                                             <>
                                                 <h4 className="text-lg font-semibold text-blue-600">{post.jobTitle}</h4>
-                                                <p className="text-sm text-gray-600">শ্রমিকের সংখ্যা: {post.numWorkersNeeded}</p>
+                                                <p className="text-sm text-gray-600">শ্রমিক লাগবে: {post.numWorkersNeeded} জন</p>
                                                 <p className="text-sm text-gray-600">বিভাগ: {post.division}, জেলা: {post.district}</p>
                                                 <p className="text-sm text-gray-600">কাজের ধরণ: {post.jobCategory}</p>
+                                                {post.mobileNumber && <p className="text-sm text-gray-600">মোবাইল নম্বর: {post.mobileNumber}</p>} {/* Display mobile number */}
                                                 <p className="text-sm text-gray-700 mt-1">{post.description}</p>
-                                                {post.salary && <p className="text-green-600 text-sm">বেতন: {post.salary}</p>}
+                                                {post.salary && <p className="text-green-600 text-sm">বেতন: {post.salary} টাকা</p>}
                                             </>
                                         ) : (
                                             <>
                                                 <h4 className="text-lg font-semibold text-purple-600">চাকরি খুঁজছি: {post.desiredJobTitle}</h4>
+                                                <p className="text-sm text-gray-600">কর্মী আছে: {post.numTeamMembers} জন</p>
                                                 <p className="text-sm text-gray-600">বিভাগ: {post.division}, জেলা: {post.district}</p>
                                                 <p className="text-sm text-gray-600">কাজের ধরণ: {post.jobCategory}</p>
-                                                <p className="text-sm text-gray-600">আপনার দলে কর্মী: {post.numTeamMembers}</p>
-                                                {post.expectedSalary && <p className="text-green-600 text-sm">প্রত্যাশিত বেতন: {post.expectedSalary}</p>}
+                                                {post.mobileNumber && <p className="text-sm text-gray-600">মোবাইল নম্বর: {post.mobileNumber}</p>} {/* Display mobile number */}
+                                                {post.expectedSalary && <p className="text-green-600 text-sm">প্রত্যাশিত বেতন: {post.expectedSalary} টাকা</p>}
                                                 <p className="text-sm text-gray-700 mt-1">{post.bioSummary}</p>
                                             </>
                                         )}
                                         <p className="text-xs text-gray-500 mt-3">পোস্ট করেছেন: {post.userName || post.postedBy}</p>
                                         {post.timestamp && (
                                             <p className="text-xs text-gray-500">
-                                                তারিখ: {new Date(post.timestamp.toDate()).toLocaleString('bn-BD')}
+                                                পোস্ট করা হয়েছে: {formatTimeAgo(post.timestamp)}
                                             </p>
                                         )}
                                         <p className="text-sm mt-2">স্ট্যাটাস: <span className={`font-semibold ${post.status === 'approved' ? 'text-green-500' : post.status === 'pending' ? 'text-yellow-500' : 'text-red-500'}`}>{post.status === 'pending' ? 'পেন্ডিং' : post.status === 'approved' ? 'অনুমোদিত' : 'প্রত্যাখ্যাত'}</span></p>
@@ -1049,7 +1105,7 @@
         /**
          * FullPostModal component to display the full details of a single post.
          */
-        function FullPostModal({ post, onClose }) {
+        function FullPostModal({ post, onClose, isLoggedIn }) { // Added isLoggedIn prop
             if (!post) return null;
 
             return (
@@ -1071,28 +1127,38 @@
                         {post.postType === 'job_sender' ? (
                             <>
                                 <h3 className="text-xl font-bold text-blue-700 mb-2">{post.jobTitle}</h3>
-                                <p className="text-gray-600 mb-1"><strong>শ্রমিকের সংখ্যা:</strong> {post.numWorkersNeeded}</p>
+                                <p className="text-gray-600 mb-1"><strong>শ্রমিক লাগবে:</strong> {post.numWorkersNeeded} জন</p>
                                 <p className="text-gray-600 mb-1"><strong>বিভাগ:</strong> {post.division}</p>
                                 <p className="text-gray-600 mb-1"><strong>জেলা:</strong> {post.district}</p>
                                 <p className="text-gray-600 mb-1"><strong>কাজের ধরণ:</strong> {post.jobCategory}</p>
+                                {post.mobileNumber && (
+                                    <p className="text-gray-600 mb-1">
+                                        <strong>মোবাইল নম্বর:</strong> {isLoggedIn ? post.mobileNumber : 'লগইন করুন দেখতে'}
+                                    </p>
+                                )}
                                 <p className="text-gray-700 mb-3 whitespace-pre-wrap">{post.description}</p>
-                                {post.salary && <p className="text-green-600 font-semibold">বেতন: {post.salary}</p>}
+                                {post.salary && <p className="text-green-600 font-semibold">বেতন: {post.salary} টাকা</p>}
                             </>
                         ) : (
                             <>
                                 <h3 className="text-xl font-bold text-purple-700 mb-2">চাকরি খুঁজছি: {post.desiredJobTitle}</h3>
+                                <p className="text-gray-600 mb-1"><strong>কর্মী আছে:</strong> {post.numTeamMembers} জন</p>
                                 <p className="text-gray-600 mb-1"><strong>বিভাগ:</strong> {post.division}</p>
                                 <p className="text-gray-600 mb-1"><strong>জেলা:</strong> {post.district}</p>
                                 <p className="text-gray-600 mb-1"><strong>কাজের ধরণ:</strong> {post.jobCategory}</p>
-                                <p className="text-gray-600 mb-1"><strong>আপনার দলে কর্মী:</strong> {post.numTeamMembers}</p>
-                                {post.expectedSalary && <p className="text-green-600 font-semibold">প্রত্যাশিত বেতন: {post.expectedSalary}</p>}
+                                {post.mobileNumber && (
+                                    <p className="text-gray-600 mb-1">
+                                        <strong>মোবাইল নম্বর:</strong> {isLoggedIn ? post.mobileNumber : 'লগইন করুন দেখতে'}
+                                    </p>
+                                )}
+                                {post.expectedSalary && <p className="text-green-600 font-semibold">প্রত্যাশিত বেতন: {post.expectedSalary} টাকা</p>}
                                 <p className="text-gray-700 mt-3 whitespace-pre-wrap">{post.bioSummary}</p>
                             </>
                         )}
                         <p className="text-xs text-gray-500 mt-3">পোস্ট করেছেন: {post.userName || post.postedBy}</p>
                         {post.timestamp && (
                             <p className="text-xs text-gray-500">
-                                তারিখ: {new Date(post.timestamp.toDate()).toLocaleString('bn-BD')}
+                                পোস্ট করা হয়েছে: {formatTimeAgo(post.timestamp)}
                             </p>
                         )}
                         <p className="text-sm mt-2">স্ট্যাটাস: <span className={`font-semibold ${post.status === 'approved' ? 'text-green-500' : post.status === 'pending' ? 'text-yellow-500' : 'text-red-500'}`}>{post.status === 'pending' ? 'পেন্ডিং' : post.status === 'approved' ? 'অনুমোদিত' : 'প্রত্যাখ্যাত'}</span></p>
@@ -1319,7 +1385,8 @@
                     if (postSnap.exists() && postSnap.data().postedBy === userId) {
                         await window.updateDoc(postRef, {
                             ...updatedData,
-                            timestamp: window.serverTimestamp() // Update timestamp on edit
+                            timestamp: window.serverTimestamp(), // Update timestamp on edit
+                            status: 'pending' // Set status to pending after edit
                         });
                         console.log("Post updated successfully!");
                         setEditingPost(null); // Clear editing state
@@ -1577,36 +1644,36 @@
                                 posts.map((post) => (
                                     <div
                                         key={post.id}
-                                        className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+                                        className={`rounded-xl shadow-lg p-6 border transition-shadow duration-300 cursor-pointer 
+                                            ${post.postType === 'job_sender' ? 'bg-blue-50 border-blue-200 hover:shadow-blue-200' : 'bg-purple-50 border-purple-200 hover:shadow-purple-200'}`}
                                         onClick={() => handlePostClick(post)} // Make the entire card clickable
                                     >
                                         {post.postType === 'job_sender' ? (
                                             <>
                                                 <h3 className="text-xl font-bold text-blue-700 mb-2">{post.jobTitle}</h3>
                                                 {/* Display Number of Workers Needed */}
-                                                <p className="text-gray-600 mb-1"><strong>শ্রমিকের সংখ্যা:</strong> {post.numWorkersNeeded}</p>
+                                                <p className="text-gray-600 mb-1"><strong>শ্রমিক লাগবে:</strong> {post.numWorkersNeeded} জন</p>
                                                 {/* Removed Division from here */}
                                                 <p className="text-gray-600 mb-1"><strong>জেলা:</strong> {post.district}</p>
                                                 <p className="text-600 mb-1"><strong>কাজের ধরণ:</strong> {post.jobCategory}</p>
                                                 <p className="text-gray-700 mb-3 truncate-1-line">{post.description}</p> {/* Truncate here */}
-                                                {post.salary && <p className="text-green-600 font-semibold">বেতন: {post.salary}</p>}
+                                                {post.salary && <p className="text-green-600 font-semibold">বেতন: {post.salary} টাকা</p>}
                                             </>
                                         ) : (
                                             <>
                                                 <h3 className="text-xl font-bold text-purple-700 mb-2">চাকরি খুঁজছি: {post.desiredJobTitle}</h3>
-                                                {/* Removed Division from here */}
+                                                {/* Display Number of Team Members */}
+                                                <p className="text-gray-600 mb-1"><strong>কর্মী আছে:</strong> {post.numTeamMembers} জন</p>
                                                 <p className="text-gray-600 mb-1"><strong>জেলা:</strong> {post.district}</p>
                                                 <p className="text-gray-600 mb-1"><strong>কাজের ধরণ:</strong> {post.jobCategory}</p>
-                                                {/* Display Number of Team Members */}
-                                                <p className="text-gray-600 mb-1"><strong>আপনার দলে কর্মী:</strong> {post.numTeamMembers}</p>
-                                                {post.expectedSalary && <p className="text-green-600 font-semibold">প্রত্যাশিত বেতন: {post.expectedSalary}</p>}
+                                                {post.expectedSalary && <p className="text-green-600 font-semibold">প্রত্যাশিত বেতন: {post.expectedSalary} টাকা</p>}
                                                 <p className="text-gray-700 mt-3 truncate-1-line">{post.bioSummary}</p> {/* Truncate here */}
                                             </>
                                         )}
                                         <p className="text-xs text-gray-500 mt-3">পোস্ট করেছেন: {post.userName || post.postedBy}</p>
                                         {post.timestamp && (
                                             <p className="text-xs text-gray-500">
-                                                তারিখ: {new Date(post.timestamp.toDate()).toLocaleString('bn-BD')}
+                                                পোস্ট করা হয়েছে: {formatTimeAgo(post.timestamp)}
                                             </p>
                                         )}
                                     </div>
@@ -1728,6 +1795,7 @@
                                 setShowFullPostModal(false);
                                 setSelectedPost(null);
                             }}
+                            isLoggedIn={!!userId} // Pass login status to FullPostModal
                         />
                     )}
                 </div>
