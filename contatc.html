@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact - Sromik Bazar</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; background: #f9f9f9; }
+    h1 { color: #333; }
+    p, label, input, textarea, button { max-width: 600px; display: block; margin-bottom: 15px; }
+    input, textarea {
+      width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;
+      font-size: 1em;
+    }
+    button {
+      background-color: #007bff; color: white; padding: 10px 20px; border: none;
+      border-radius: 4px; cursor: pointer; font-size: 1em;
+    }
+    button:hover { background-color: #0056b3; }
+    a { color: #007bff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>যোগাযোগ করুন</h1>
+  <p>আপনার কোনো প্রশ্ন বা মতামত থাকলে নিচের ফরমটি পূরণ করে আমাদের পাঠাতে পারেন।</p>
+
+  <form action="mailto:nmdsuman@gmail.com" method="post" enctype="text/plain">
+    <label for="name">আপনার নাম:</label>
+    <input type="text" id="name" name="name" required />
+
+    <label for="email">আপনার ইমেইল:</label>
+    <input type="email" id="email" name="email" required />
+
+    <label for="message">মেসেজ:</label>
+    <textarea id="message" name="message" rows="5" required></textarea>
+
+    <button type="submit">পাঠান</button>
+  </form>
+
+  <p>অথবা সরাসরি মেইল করুন: <a href="mailto:nmdsuman@gmail.com">nmdsuman@gmail.com</a></p>
+
+  <p><a href="about.html">About পেজে যান</a></p>
+</body>
+</html>
