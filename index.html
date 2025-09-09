@@ -26,6 +26,29 @@
         .sidebar.open {
             transform: translateX(0);
         }
+        .balance-container {
+            position: relative;
+        }
+        .balance-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+            border-radius: 0.75rem;
+        }
+        .balance-overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -138,7 +161,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, runTransaction, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, runTransaction, collection, query, where, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables provided by the environment
         const firebaseConfig = {
@@ -290,6 +313,7 @@
                         <input type="text" id="name" placeholder="আপনার নাম" value="${name}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <input type="date" id="dob-input" placeholder="আপনার জন্মতারিখ" value="${dob}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <input type="text" id="mobile" placeholder="আপনার মোবাইল নম্বর" value="${mobile}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                        <input type="password" id="pin" placeholder="৪-সংখ্যার পিন দিন" maxlength="4" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <button type="submit" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">প্রোফাইল সংরক্ষণ করুন</button>
                         <button id="back-to-dashboard-btn" type="button" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
                     </form>
@@ -429,14 +453,10 @@
 
             showLoading(true);
             try {
-                const profilesCollection = collection(db, `artifacts/${appId}/users/${currentUser.uid}/profile`);
-                
-                // Query for email
-                const qEmail = query(profilesCollection, where("email", "==", recipientId));
+                const qEmail = query(collection(db, `artifacts/${appId}/users/${currentUser.uid}/profile`), where("email", "==", recipientId));
                 const querySnapshotEmail = await getDocs(qEmail);
 
-                // Query for mobile
-                const qMobile = query(profilesCollection, where("mobile", "==", recipientId));
+                const qMobile = query(collection(db, `artifacts/${appId}/users/${currentUser.uid}/profile`), where("mobile", "==", recipientId));
                 const querySnapshotMobile = await getDocs(qMobile);
 
                 let recipientDoc = null;
@@ -452,7 +472,7 @@
                 
                 if (recipientDoc && recipientUid) {
                     const data = recipientDoc.data();
-                    recipientData = { uid: recipientUid, name: data.name };
+                    recipientData = { uid: recipientUid, name: data.name, mobile: data.mobile };
                     renderSendMoneyFormStep3(recipientData);
                 } else {
                     showMessage("প্রাপককে খুঁজে পাওয়া যায়নি।");
@@ -465,20 +485,74 @@
             }
         }
         
-        // Step 3: Render the amount form
-        function renderSendMoneyFormStep3(recipient) {
+        // Step 3: Render the amount form (updated to match the new image)
+        async function renderSendMoneyFormStep3(recipient) {
+            showLoading(true);
+            const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+            const docSnap = await getDoc(profileDocRef);
+            showLoading(false);
+            const currentBalance = docSnap.exists() ? docSnap.data().balance : 0;
+
             mainContent.innerHTML = `
-                <div class="flex flex-col h-full p-4 space-y-6">
-                    <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">টাকার পরিমাণ দিন</h2>
-                    <div class="flex items-center space-x-2 p-4 rounded-xl bg-gray-100">
-                        <i class="fas fa-user-circle text-2xl text-cashpoint-pink"></i>
-                        <span class="font-semibold">${recipient.name}</span>
+                <div class="flex flex-col items-center h-full p-4 space-y-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">সেন্ড মানি</h2>
+                    <!-- Recipient Info -->
+                    <div class="flex items-center space-x-4 mb-6">
+                        <div class="w-12 h-12 rounded-full bg-cashpoint-pink flex items-center justify-center text-white text-xl font-bold">
+                            ${recipient.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-lg font-semibold text-gray-800">${recipient.name}</span>
+                            <span class="text-sm text-gray-500">${recipient.mobile}</span>
+                        </div>
                     </div>
-                    <input type="number" id="amount-input" placeholder="পরিমাণ" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
-                    <button id="confirm-amount-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">পরবর্তী</button>
-                    <button id="back-btn-step3" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
+                    
+                    <div class="w-full flex flex-col items-center space-y-4">
+                        <h3 class="text-lg text-gray-600">পরিমাণ</h3>
+                        <div class="w-full text-center">
+                            <span class="text-6xl font-bold">৳</span>
+                            <input type="number" id="amount-input" placeholder="০" class="text-6xl font-bold text-center bg-transparent border-none focus:outline-none w-1/2">
+                        </div>
+                    </div>
+
+                    <!-- Balance Section -->
+                    <div class="w-full space-y-4 mt-8">
+                        <div class="balance-container relative p-4 rounded-xl shadow-md bg-gray-100 flex justify-center items-center">
+                            <span class="text-gray-600">ব্যবহারযোগ্য ব্যালেন্স:</span>
+                            <span id="current-balance" class="text-lg font-bold text-cashpoint-pink ml-2">৳ ${currentBalance.toFixed(2)}</span>
+                        </div>
+                        
+                        <!-- Gift Card Section -->
+                        <div class="mt-4">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2">গিফট কার্ড সিলেক্ট করুন</h3>
+                            <div class="flex justify-between space-x-2">
+                                <div class="flex flex-col items-center p-3 border-2 border-cashpoint-pink rounded-xl bg-cashpoint-pink text-white w-1/4">
+                                    <i class="fas fa-paper-plane text-2xl mb-1"></i>
+                                    <span class="text-xs">সেন্ড মানি</span>
+                                </div>
+                                <div class="flex flex-col items-center p-3 border-2 border-gray-300 rounded-xl w-1/4">
+                                    <i class="fas fa-gift text-2xl mb-1 text-cashpoint-pink"></i>
+                                    <span class="text-xs text-gray-600">অভিনন্দন</span>
+                                </div>
+                                <div class="flex flex-col items-center p-3 border-2 border-gray-300 rounded-xl w-1/4">
+                                    <i class="fas fa-birthday-cake text-2xl mb-1 text-cashpoint-pink"></i>
+                                    <span class="text-xs text-gray-600">জন্মদিন</span>
+                                </div>
+                                <div class="flex flex-col items-center p-3 border-2 border-gray-300 rounded-xl w-1/4">
+                                    <i class="fas fa-heart text-2xl mb-1 text-cashpoint-pink"></i>
+                                    <span class="text-xs text-gray-600">বিয়ে</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Navigation Buttons -->
+                    <div class="mt-auto w-full flex space-x-2 pt-8">
+                        <button id="confirm-amount-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">এগিয়ে যান</button>
+                    </div>
                 </div>
             `;
+            
             document.getElementById('confirm-amount-btn').addEventListener('click', () => {
                 const amount = parseFloat(document.getElementById('amount-input').value);
                 if (isNaN(amount) || amount <= 0) {
@@ -487,9 +561,8 @@
                 }
                 renderSendMoneyConfirmation(recipient, amount);
             });
-            document.getElementById('back-btn-step3').addEventListener('click', renderSendMoneyFormStep1);
         }
-
+        
         // Step 4: Render the final confirmation form with PIN input
         function renderSendMoneyConfirmation(recipient, amount) {
             mainContent.innerHTML = `
@@ -499,7 +572,7 @@
                         <p class="text-sm text-gray-600">প্রাপক: <span class="font-semibold text-gray-800">${recipient.name}</span></p>
                         <p class="text-sm text-gray-600">পরিমাণ: <span class="font-semibold text-gray-800">৳ ${amount.toFixed(2)}</span></p>
                     </div>
-                    <input type="password" id="pin-input" placeholder="আপনার পিন দিন" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                    <input type="password" id="pin-input" placeholder="আপনার পিন দিন" maxlength="4" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                     <button id="send-money-final-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">টাকা পাঠান</button>
                     <button id="back-btn-step4" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
                 </div>
@@ -508,11 +581,22 @@
             document.getElementById('back-btn-step4').addEventListener('click', () => renderSendMoneyFormStep3(recipient));
         }
 
+        // Simple hashing function for PIN (for demonstration purposes only)
+        function hashPin(pin) {
+            let hash = 0;
+            for (let i = 0; i < pin.length; i++) {
+                const char = pin.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash |= 0; // Convert to 32bit integer
+            }
+            return hash;
+        }
+
         // Step 5: Handle the actual transaction
         async function handleSendMoneyTransaction(recipient, amount) {
             const pin = document.getElementById('pin-input').value;
-            if (!pin) {
-                showMessage("দয়া করে আপনার পিন দিন।");
+            if (!pin || pin.length !== 4) {
+                showMessage("দয়া করে ৪-সংখ্যার সঠিক পিন দিন।");
                 return;
             }
 
@@ -526,12 +610,20 @@
                 await runTransaction(db, async (transaction) => {
                     const senderDoc = await transaction.get(senderDocRef);
                     if (!senderDoc.exists()) {
-                        throw "আপনার প্রোফাইল খুঁজে পাওয়া যায়নি।";
+                        throw new Error("আপনার প্রোফাইল খুঁজে পাওয়া যায়নি।");
                     }
 
-                    const currentBalance = senderDoc.data().balance || 0;
+                    const senderData = senderDoc.data();
+                    const currentBalance = senderData.balance || 0;
+                    const savedPinHash = senderData.pinHash;
+
+                    // Verify PIN
+                    if (hashPin(pin) !== savedPinHash) {
+                        throw new Error("ভুল পিন।");
+                    }
+                    
                     if (currentBalance < amount) {
-                        throw "অপর্যাপ্ত ব্যালেন্স।";
+                        throw new Error("অপর্যাপ্ত ব্যালেন্স।");
                     }
 
                     const recipientDoc = await transaction.get(recipientDocRef);
@@ -654,11 +746,18 @@
             const name = document.getElementById('name').value;
             const dob = document.getElementById('dob-input').value;
             const mobile = document.getElementById('mobile').value;
+            const pin = document.getElementById('pin').value;
+
+            if (pin.length !== 4) {
+                showMessage("পিন ৪-সংখ্যার হতে হবে।");
+                return;
+            }
 
             showLoading(true);
             try {
                 const docRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
-                await setDoc(docRef, { name, dob, mobile, balance: 0.00 });
+                const pinHash = hashPin(pin);
+                await setDoc(docRef, { name, dob, mobile, pinHash, balance: 0.00 });
                 showMessage("প্রোফাইল সফলভাবে সংরক্ষণ করা হয়েছে!");
             } catch (error) {
                 console.error("Error saving profile:", error);
@@ -827,6 +926,5 @@
             });
         }
     </script>
-
 </body>
 </html>
