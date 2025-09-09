@@ -7,34 +7,126 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: sans-serif;
             background-color: #f0f2f5;
         }
         .bg-cashpoint-pink {
             background-color: #E2136E;
         }
+        .text-cashpoint-pink {
+            color: #E2136E;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #FF69B4, #E2136E);
+        }
+        .sidebar {
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar.open {
+            transform: translateX(0);
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
 
     <!-- Main Container -->
-    <div id="app-container" class="relative w-full max-w-md bg-white shadow-lg rounded-2xl overflow-hidden min-h-[600px] flex flex-col">
+    <div id="app-container" class="relative w-full max-w-sm bg-white shadow-xl rounded-2xl overflow-hidden min-h-[600px] flex flex-col">
         <!-- Message Box -->
         <div id="message-box" class="absolute top-4 left-1/2 -translate-x-1/2 z-50 p-3 rounded-lg text-sm transition-all duration-300 transform scale-0" style="background-color: #1a1a1a; color: white;"></div>
 
         <!-- Header -->
-        <header id="header" class="w-full bg-cashpoint-pink text-white py-4 px-6 flex items-center justify-between shadow-md">
+        <header id="header" class="w-full gradient-bg text-white py-4 px-6 flex items-center justify-between shadow-md">
             <h1 class="text-2xl font-bold">CashPoint</h1>
             <div id="user-info-header" class="flex items-center space-x-2">
                 <span id="header-user-name" class="font-medium text-sm"></span>
-                <button id="logout-btn" class="bg-white text-cashpoint-pink text-sm font-semibold px-3 py-1 rounded-full shadow-lg transition-transform transform hover:scale-105">লগআউট</button>
             </div>
         </header>
 
         <!-- Main Content Area -->
-        <main id="main-content" class="flex-grow flex flex-col p-6 overflow-y-auto">
+        <main id="main-content" class="flex-grow flex flex-col p-4 overflow-y-auto">
             <!-- Content will be rendered here based on auth state and profile status -->
         </main>
+
+        <!-- Sidebar Menu -->
+        <aside id="menu-sidebar" class="fixed top-0 right-0 h-full w-3/4 bg-white shadow-lg z-50 sidebar flex flex-col">
+            <div class="p-6 bg-cashpoint-pink text-white flex items-center space-x-4 rounded-b-xl">
+                <div id="sidebar-initial" class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-cashpoint-pink text-xl font-bold">S</div>
+                <div>
+                    <h3 id="sidebar-user-name" class="text-xl font-semibold"></h3>
+                    <p id="sidebar-user-mobile" class="text-sm"></p>
+                </div>
+            </div>
+            <ul class="flex-grow flex flex-col p-4 space-y-2 overflow-y-auto">
+                <!-- Home button now has a new ID to make it functional -->
+                <li id="home-btn-menu" class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-home text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">হোম</span>
+                </li>
+                <li class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-chart-bar text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">স্টেটমেন্ট</span>
+                </li>
+                <li class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-exclamation-triangle text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">লিমিট</span>
+                </li>
+                <li class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-ticket-alt text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">কুপন</span>
+                </li>
+                <li id="update-info-btn" class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-sync-alt text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">তথ্য হালনাগাদ</span>
+                </li>
+                <li class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-user-edit text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">নমিনির তথ্য হালনাগাদ</span>
+                </li>
+                <li class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-user-friends text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">রেফার বিকাশ অ্যাপ</span>
+                </li>
+                <li class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-map-marker-alt text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">বিকাশ ম্যাপ</span>
+                </li>
+                <li class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-info-circle text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">বিকাশ নিয়ে জানুন</span>
+                </li>
+                <li id="logout-btn" class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors mt-auto border-t pt-4">
+                    <i class="fas fa-sign-out-alt text-xl text-cashpoint-pink"></i>
+                    <span class="text-gray-700 font-medium">লগআউট</span>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Bottom Navigation -->
+        <footer id="bottom-nav" class="w-full bg-white shadow-t-xl rounded-t-2xl py-3 px-4 flex justify-around items-center border-t border-gray-200">
+            <!-- Home button now has a new ID to make it functional -->
+            <div id="home-btn" class="flex flex-col items-center text-cashpoint-pink cursor-pointer">
+                <i class="fas fa-home text-2xl"></i>
+                <span class="text-xs mt-1">হোম</span>
+            </div>
+            <div class="flex flex-col items-center text-gray-500 cursor-pointer">
+                <i class="fas fa-qrcode text-2xl"></i>
+                <span class="text-xs mt-1">QR স্ক্যান</span>
+            </div>
+            <div class="flex flex-col items-center text-gray-500 cursor-pointer">
+                <i class="fas fa-search text-2xl"></i>
+                <span class="text-xs mt-1">সার্চ</span>
+            </div>
+            <div class="flex flex-col items-center text-gray-500 cursor-pointer">
+                <i class="fas fa-inbox text-2xl"></i>
+                <span class="text-xs mt-1">ইনবক্স</span>
+            </div>
+            <div id="menu-btn" class="flex flex-col items-center text-gray-500 cursor-pointer">
+                <i class="fas fa-bars text-2xl"></i>
+                <span class="text-xs mt-1">মেনু</span>
+            </div>
+        </footer>
         
         <!-- Loading Spinner -->
         <div id="loading-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-40 hidden">
@@ -45,8 +137,8 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, runTransaction, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables provided by the environment
         const firebaseConfig = {
@@ -69,6 +161,7 @@
 
         let currentUser = null;
         let unsubscribeFromProfile = null;
+        let recipientData = {}; // To store recipient info for the transaction
 
         // UI Elements
         const mainContent = document.getElementById('main-content');
@@ -76,7 +169,16 @@
         const logoutBtn = document.getElementById('logout-btn');
         const loadingOverlay = document.getElementById('loading-overlay');
         const messageBox = document.getElementById('message-box');
-
+        const menuSidebar = document.getElementById('menu-sidebar');
+        const menuBtn = document.getElementById('menu-btn');
+        const appContainer = document.getElementById('app-container');
+        const sidebarUserName = document.getElementById('sidebar-user-name');
+        const sidebarUserMobile = document.getElementById('sidebar-user-mobile');
+        const sidebarInitial = document.getElementById('sidebar-initial');
+        const updateInfoBtn = document.getElementById('update-info-btn');
+        const homeBtn = document.getElementById('home-btn');
+        const homeBtnMenu = document.getElementById('home-btn-menu');
+        
         // Function to show a message
         function showMessage(text, duration = 3000) {
             messageBox.textContent = text;
@@ -97,102 +199,369 @@
             }
         }
 
+        // Handle menu click
+        function handleMenuClick() {
+            menuSidebar.classList.add('open');
+        }
+
+        // Handle clicks outside the menu to close it
+        document.addEventListener('click', (event) => {
+            if (menuSidebar.classList.contains('open') && !menuSidebar.contains(event.target) && !menuBtn.contains(event.target) && !updateInfoBtn.contains(event.target)) {
+                menuSidebar.classList.remove('open');
+            }
+        });
+        
+        // Render the sidebar with user data
+        function renderSidebar(profileData) {
+            const userName = profileData.name || 'ব্যবহারকারী';
+            const userMobile = profileData.mobile || '';
+            const userInitial = userName.charAt(0).toUpperCase();
+
+            sidebarUserName.textContent = userName;
+            sidebarUserMobile.textContent = userMobile;
+            sidebarInitial.textContent = userInitial;
+        }
+
         // Render the logged-out landing page
-        function renderLandingPage() {
+        function renderLandingPage(view = 'email', authMode = 'login') {
+            const googleFormClass = view === 'google' ? 'block' : 'hidden';
+            const emailFormClass = view === 'email' ? 'block' : 'hidden';
+            const buttonText = authMode === 'login' ? 'সাইন ইন' : 'সাইন আপ';
+            const toggleText = authMode === 'login' ? 'অ্যাকাউন্ট নেই? সাইন আপ করুন' : 'ইতিমধ্যেই অ্যাকাউন্ট আছে? সাইন ইন করুন';
+            
             mainContent.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full p-4 text-center space-y-8">
                     <img src="https://placehold.co/150x150/E2136E/FFFFFF?text=CashPoint" alt="CashPoint Logo" class="w-28 h-28 mb-4 rounded-full">
                     <h2 class="text-3xl font-bold text-gray-800">CashPoint-এ স্বাগতম</h2>
                     <p class="text-gray-600">আপনার মোবাইল ব্যাংকিং যাত্রা শুরু করুন।</p>
-                    <button id="google-signin-btn" class="w-full max-w-xs py-3 px-6 bg-cashpoint-pink text-white font-bold rounded-full shadow-lg flex items-center justify-center space-x-2 transition-transform transform hover:scale-105">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.000 12.189c0-.756-.068-1.503-.198-2.235h-9.802v4.195h5.592c-.244 1.348-.992 2.484-2.112 3.284v2.704h3.488c2.043-1.892 3.228-4.664 3.228-8.086z"/><path d="M12.000 22.000c2.932 0 5.378-.973 7.168-2.617l-3.488-2.704c-.957.643-2.18.995-3.68.995-2.834 0-5.232-1.92-6.096-4.508h-3.68v2.846c1.782 3.535 5.253 5.988 9.776 5.988z"/><path d="M5.904 13.567c-.201-.643-.314-1.32-.314-2.007s.113-1.364.314-2.007v-2.846h-3.68c-.645 1.288-1.024 2.766-1.024 4.853s.379 3.565 1.024 4.853l3.68-2.846z"/><path d="M12.000 5.492c1.574 0 2.981.54 4.095 1.579l3.078-3.078c-1.874-1.742-4.298-2.822-7.173-2.822-4.523 0-7.994 2.453-9.776 5.988l3.68 2.846c.864-2.588 3.262-4.508 6.096-4.508z"/></svg>
-                        <span>Google দিয়ে সাইন ইন</span>
-                    </button>
+
+                    <div class="w-full flex justify-center mb-4 space-x-2">
+                        <button id="email-view-btn" class="py-2 px-4 rounded-full font-semibold transition-all duration-200 ${view === 'email' ? 'bg-cashpoint-pink text-white' : 'bg-gray-200 text-gray-700'}">ইমেইল</button>
+                        <button id="google-view-btn" class="py-2 px-4 rounded-full font-semibold transition-all duration-200 ${view === 'google' ? 'bg-cashpoint-pink text-white' : 'bg-gray-200 text-gray-700'}">Google</button>
+                    </div>
+
+                    <!-- Email/Password Form -->
+                    <div id="email-form-container" class="w-full max-w-xs space-y-4 ${emailFormClass}">
+                        <input type="email" id="email-input" placeholder="ইমেইল" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                        <input type="password" id="password-input" placeholder="পাসওয়ার্ড" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                        <button id="auth-submit-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">${buttonText}</button>
+                        <p id="toggle-auth-view" class="text-center text-sm text-gray-500 cursor-pointer hover:underline">${toggleText}</p>
+                    </div>
+
+                    <!-- Google Sign-in Button -->
+                    <div id="google-form-container" class="w-full max-w-xs space-y-4 ${googleFormClass}">
+                        <button id="google-signin-btn" class="w-full py-3 px-6 bg-cashpoint-pink text-white font-bold rounded-full shadow-lg flex items-center justify-center space-x-2 transition-transform transform hover:scale-105">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.000 12.189c0-.756-.068-1.503-.198-2.235h-9.802v4.195h5.592c-.244 1.348-.992 2.484-2.112 3.284v2.704h3.488c2.043-1.892 3.228-4.664 3.228-8.086z"/><path d="M12.000 22.000c2.932 0 5.378-.973 7.168-2.617l-3.488-2.704c-.957.643-2.18.995-3.68.995-2.834 0-5.232-1.92-6.096-4.508h-3.68v2.846c1.782 3.535 5.253 5.988 9.776 5.988z"/><path d="M5.904 13.567c-.201-.643-.314-1.32-.314-2.007s.113-1.364.314-2.007v-2.846h-3.68c-.645 1.288-1.024 2.766-1.024 4.853s.379 3.565 1.024 4.853l3.68-2.846z"/><path d="M12.000 5.492c1.574 0 2.981.54 4.095 1.579l3.078-3.078c-1.874-1.742-4.298-2.822-7.173-2.822-4.523 0-7.994 2.453-9.776 5.988l3.68 2.846c.864-2.588 3.262-4.508 6.096-4.508z"/></svg>
+                            <span>Google দিয়ে সাইন ইন</span>
+                        </button>
+                    </div>
+                    
                     <p class="mt-4 text-xs text-gray-400">আপনার ব্যক্তিগত ডেটা গোপনীয় রাখা হবে।</p>
                 </div>
             `;
             document.getElementById('google-signin-btn').addEventListener('click', handleGoogleSignIn);
+            document.getElementById('email-view-btn').addEventListener('click', () => renderLandingPage('email', authMode));
+            document.getElementById('google-view-btn').addEventListener('click', () => renderLandingPage('google'));
+            
+            const authSubmitBtn = document.getElementById('auth-submit-btn');
+            authSubmitBtn.addEventListener('click', () => {
+                if (authMode === 'login') {
+                    handleEmailSignIn();
+                } else {
+                    handleEmailSignUp();
+                }
+            });
+            document.getElementById('toggle-auth-view').addEventListener('click', () => {
+                const newAuthMode = authMode === 'login' ? 'signup' : 'login';
+                renderLandingPage('email', newAuthMode);
+            });
         }
 
         // Render the profile form page
-        function renderProfileForm() {
+        function renderUpdateInfoForm(profileData = {}) {
+            const name = profileData.name || '';
+            const dob = profileData.dob || '';
+            const mobile = profileData.mobile || '';
+
             mainContent.innerHTML = `
                 <div class="flex flex-col items-center h-full p-4 space-y-6">
                     <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">আপনার প্রোফাইল সম্পূর্ণ করুন</h2>
                     <form id="profile-form" class="w-full space-y-4">
-                        <input type="text" id="name" placeholder="আপনার নাম" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink" required>
-                        <input type="number" id="age" placeholder="আপনার বয়স" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink" required>
-                        <input type="text" id="mobile" placeholder="আপনার মোবাইল নম্বর" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink" required>
+                        <input type="text" id="name" placeholder="আপনার নাম" value="${name}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                        <input type="date" id="dob-input" placeholder="আপনার জন্মতারিখ" value="${dob}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                        <input type="text" id="mobile" placeholder="আপনার মোবাইল নম্বর" value="${mobile}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <button type="submit" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">প্রোফাইল সংরক্ষণ করুন</button>
+                        <button id="back-to-dashboard-btn" type="button" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
                     </form>
                     <p class="text-sm text-gray-500 mt-4">User ID: <span class="font-mono text-xs break-all">${currentUser.uid}</span></p>
                 </div>
             `;
             document.getElementById('profile-form').addEventListener('submit', handleProfileSave);
+            document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
+                // Return to dashboard without forcing update
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                onSnapshot(profileDocRef, (docSnap) => {
+                    const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    renderDashboard(profileData);
+                    renderSidebar(profileData);
+                });
+                menuSidebar.classList.remove('open');
+            });
         }
 
         // Render the main dashboard
         function renderDashboard(profileData) {
             const userName = profileData.name || 'ব্যবহারকারী';
-            const userAge = profileData.age ? `বয়স: ${profileData.age}` : '';
-            const userMobile = profileData.mobile ? `মোবাইল: ${profileData.mobile}` : '';
+            const balance = profileData.balance !== undefined ? profileData.balance.toFixed(2) : '0.00';
 
             headerUserName.textContent = userName;
+            renderSidebar(profileData);
 
             mainContent.innerHTML = `
-                <div class="flex flex-col h-full p-4 space-y-6">
-                    <div class="bg-cashpoint-pink text-white rounded-2xl p-6 shadow-xl flex flex-col items-start space-y-2">
-                        <p class="text-sm">ব্যালেন্স</p>
-                        <div class="flex items-end justify-between w-full">
-                            <span class="text-3xl font-bold">৳ 0.00</span>
-                            <div class="flex items-center space-x-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M12 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.135 2.25 12 6.615 2.25 12 2.25zm0 1.5a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5zm0 13.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM12 9a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5H12zM12 7.5a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75z"/></svg>
-                            </div>
+                <div class="p-4 flex flex-col space-y-6">
+                    <!-- Profile Header -->
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-full bg-cashpoint-pink flex items-center justify-center text-white text-xl font-bold">${userName.charAt(0)}</div>
+                        <div class="flex-grow">
+                            <h2 class="text-lg font-semibold text-gray-800">${userName}</h2>
+                            <p class="text-sm text-gray-500 flex items-center">
+                                <span class="font-mono text-xs break-all mr-2">ID: ${currentUser.uid.substring(0, 8)}...</span>
+                                <i class="fas fa-copy text-xs cursor-pointer hover:text-cashpoint-pink" onclick="copyToClipboard('${currentUser.uid}')"></i>
+                            </p>
                         </div>
+                        <i class="fas fa-trophy text-2xl text-yellow-500"></i>
                     </div>
 
-                    <div class="grid grid-cols-4 gap-4 text-center text-gray-600">
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full mb-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cashpoint-pink"><path d="M10.875 9.75c0 .542-.087 1.077-.254 1.589L9.52 13.52a1.875 1.875 0 01-2.652 0H6.25c-1.03 0-1.875-.845-1.875-1.875v-1.5c0-1.03.845-1.875 1.875-1.875h.008c.361 0 .695.112.977.307a3.064 3.064 0 002.344 0c.282-.195.616-.307.977-.307h.008c1.03 0 1.875.845 1.875 1.875v.75zM15.75 12a1.875 1.875 0 100-3.75 1.875 1.875 0 000 3.75zM12 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.135 2.25 12 6.615 2.25 12 2.25zm0 1.5a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5z"/></svg>
-                            </div>
-                            <span class="text-xs mt-1 font-medium">সেন্ড মানি</span>
+                    <!-- Wallet Balance Card -->
+                    <div class="bg-white rounded-xl p-4 shadow-md flex items-center justify-between">
+                        <div class="flex-grow">
+                            <p class="text-sm text-gray-500">ব্যালেন্স</p>
+                            <span class="text-2xl font-bold text-gray-800">৳ ${balance}</span>
                         </div>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full mb-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cashpoint-pink"><path d="M12.000 1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zM18.995 5.567a.75.75 0 01.53.22l1.061 1.06a.75.75 0 010 1.06L14.75 13.75l-1.06-1.06a.75.75 0 010-1.06l1.06-1.06a.75.75 0 011.06 0zm-10.742 8.784a.75.75 0 01.22.53v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zM1.5 12.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM5.567 19.005a.75.75 0 01.53-.22l1.06 1.06a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 010-1.06l1.06-1.06a.75.75 0 01.53-.22zM2.25 12c0 2.28 1.157 4.31 2.915 5.518a.75.75 0 00.585-.929 6.75 6.75 0 018.917-8.917c.594-.287 1.045-.192 1.343.153l1.838 1.838a.75.75 0 001.06-1.06L15.42 5.09a.75.75 0 00-.53-.222c-2.333-.538-4.78-.538-7.113 0a.75.75 0 00-.53.222l-1.838 1.838a.75.75 0 000 1.06z"/></svg>
-                            </div>
-                            <span class="text-xs mt-1 font-medium">ক্যাশ আউট</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full mb-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cashpoint-pink"><path d="M12.000 1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zM18.995 5.567a.75.75 0 01.53.22l1.061 1.06a.75.75 0 010 1.06L14.75 13.75l-1.06-1.06a.75.75 0 010-1.06l1.06-1.06a.75.75 0 011.06 0zm-10.742 8.784a.75.75 0 01.22.53v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zM1.5 12.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM5.567 19.005a.75.75 0 01.53-.22l1.06 1.06a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 010-1.06l1.06-1.06a.75.75 0 01.53-.22zM2.25 12c0 2.28 1.157 4.31 2.915 5.518a.75.75 0 00.585-.929 6.75 6.75 0 018.917-8.917c.594-.287 1.045-.192 1.343.153l1.838 1.838a.75.75 0 001.06-1.06L15.42 5.09a.75.75 0 00-.53-.222c-2.333-.538-4.78-.538-7.113 0a.75.75 0 00-.53.222l-1.838 1.838a.75.75 0 000 1.06z"/></svg>
-                            </div>
-                            <span class="text-xs mt-1 font-medium">পেমেন্ট</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full mb-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cashpoint-pink"><path fill-rule="evenodd" d="M1.5 8.25a3 3 0 013-3h15a3 3 0 013 3v6a3 3 0 01-3 3H4.5a3 3 0 01-3-3v-6zM15 9a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75A.75.75 0 0115 9zm3.75 0a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75A.75.75 0 0118.75 9zm1.5 0a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75a.75.75 0 01.75.75zM15 13.5a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75a.75.75 0 01.75.75zm3.75 0a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75a.75.75 0 01.75.75zm1.5 0a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75a.75.75 0 01.75.75z" clip-rule="evenodd" /></svg>
-                            </div>
-                            <span class="text-xs mt-1 font-medium">বিল পে</span>
-                        </div>
+                        <button class="bg-cashpoint-pink text-white text-sm font-semibold px-4 py-2 rounded-full shadow-lg transition-transform transform hover:scale-105">
+                            ব্যালেন্স দেখুন
+                        </button>
                     </div>
 
-                    <div class="bg-white rounded-2xl p-6 shadow-xl space-y-4">
-                        <div class="flex items-center space-x-2 text-gray-800">
-                            <h3 class="font-bold">আপনার প্রোফাইল</h3>
+                    <!-- Service Grid -->
+                    <div class="grid grid-cols-3 gap-4 text-center text-gray-600">
+                        <!-- Added an ID for the Send Money button -->
+                        <div id="send-money-btn-container" class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                            <i class="fas fa-paper-plane text-2xl text-cashpoint-pink mb-2"></i>
+                            <span class="text-xs font-medium">সেন্ড মানি</span>
                         </div>
-                        <div class="border-t border-gray-200 pt-4">
-                            <p class="text-sm text-gray-600">আপনার নাম: <span class="font-medium text-gray-800">${profileData.name || 'যোগ করা হয়নি'}</span></p>
-                            <p class="text-sm text-gray-600 mt-2">আপনার বয়স: <span class="font-medium text-gray-800">${profileData.age || 'যোগ করা হয়নি'}</span></p>
-                            <p class="text-sm text-gray-600 mt-2">আপনার মোবাইল: <span class="font-medium text-gray-800">${profileData.mobile || 'যোগ করা হয়নি'}</span></p>
-                            <p class="text-sm text-gray-500 mt-4">User ID: <span class="font-mono text-xs break-all">${currentUser.uid}</span></p>
+                        <div class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                            <i class="fas fa-mobile-alt text-2xl text-cashpoint-pink mb-2"></i>
+                            <span class="text-xs font-medium">মোবাইল রিচার্জ</span>
+                        </div>
+                        <div class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                            <i class="fas fa-hand-holding-usd text-2xl text-cashpoint-pink mb-2"></i>
+                            <span class="text-xs font-medium">ক্যাশ আউট</span>
+                        </div>
+                        <div class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                            <i class="fas fa-credit-card text-2xl text-cashpoint-pink mb-2"></i>
+                            <span class="text-xs font-medium">পেমেন্ট</span>
+                        </div>
+                        <div id="add-money-btn-container" class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                            <i class="fas fa-plus-circle text-2xl text-cashpoint-pink mb-2"></i>
+                            <span class="text-xs font-medium">অ্যাড মানি</span>
+                        </div>
+                        <div class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                            <i class="fas fa-piggy-bank text-2xl text-cashpoint-pink mb-2"></i>
+                            <span class="text-xs font-medium">সেভিংস</span>
                         </div>
                     </div>
                 </div>
             `;
+            document.getElementById('add-money-btn-container').addEventListener('click', showAddMoneyForm);
+            document.getElementById('send-money-btn-container').addEventListener('click', renderSendMoneyFormStep1);
+        }
+        
+        // Render Add Money form
+        function showAddMoneyForm() {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full p-4 space-y-6">
+                    <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">টাকা যোগ করুন</h2>
+                    <input type="number" id="amount-input" placeholder="পরিমাণ" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                    <button id="add-money-submit-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">টাকা যোগ করুন</button>
+                    <button id="back-to-dashboard-btn" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
+                </div>
+            `;
+            document.getElementById('add-money-submit-btn').addEventListener('click', () => handleWalletAction('deposit'));
+            document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                onSnapshot(profileDocRef, (docSnap) => {
+                    const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    renderDashboard(profileData);
+                    renderSidebar(profileData);
+                });
+            });
+        }
+        
+        // Step 1: Render the form to enter recipient's info
+        function renderSendMoneyFormStep1() {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full p-4 space-y-6">
+                    <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">টাকা পাঠান</h2>
+                    <input type="text" id="recipient-input" placeholder=" প্রাপকের ইমেইল বা মোবাইল নম্বর" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                    <button id="find-recipient-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">পরবর্তী</button>
+                    <button id="cancel-btn" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">বাতিল</button>
+                </div>
+            `;
+            document.getElementById('find-recipient-btn').addEventListener('click', findRecipientAndRenderFormStep2);
+            document.getElementById('cancel-btn').addEventListener('click', () => {
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                onSnapshot(profileDocRef, (docSnap) => {
+                    const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    renderDashboard(profileData);
+                    renderSidebar(profileData);
+                });
+            });
         }
 
+        // Step 2: Find the recipient and render the amount form
+        async function findRecipientAndRenderFormStep2() {
+            const recipientId = document.getElementById('recipient-input').value;
+            if (!recipientId) {
+                showMessage("দয়া করে প্রাপকের তথ্য দিন।");
+                return;
+            }
+
+            showLoading(true);
+            try {
+                const profilesCollection = collection(db, `artifacts/${appId}/users/${currentUser.uid}/profile`);
+                
+                // Query for email
+                const qEmail = query(profilesCollection, where("email", "==", recipientId));
+                const querySnapshotEmail = await getDocs(qEmail);
+
+                // Query for mobile
+                const qMobile = query(profilesCollection, where("mobile", "==", recipientId));
+                const querySnapshotMobile = await getDocs(qMobile);
+
+                let recipientDoc = null;
+                let recipientUid = null;
+
+                if (!querySnapshotEmail.empty) {
+                    recipientDoc = querySnapshotEmail.docs[0];
+                    recipientUid = recipientDoc.id;
+                } else if (!querySnapshotMobile.empty) {
+                    recipientDoc = querySnapshotMobile.docs[0];
+                    recipientUid = recipientDoc.id;
+                }
+                
+                if (recipientDoc && recipientUid) {
+                    const data = recipientDoc.data();
+                    recipientData = { uid: recipientUid, name: data.name };
+                    renderSendMoneyFormStep3(recipientData);
+                } else {
+                    showMessage("প্রাপককে খুঁজে পাওয়া যায়নি।");
+                }
+            } catch (error) {
+                console.error("Error finding recipient:", error);
+                showMessage("প্রাপক খোঁজার সময় একটি ত্রুটি হয়েছে।");
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Step 3: Render the amount form
+        function renderSendMoneyFormStep3(recipient) {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full p-4 space-y-6">
+                    <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">টাকার পরিমাণ দিন</h2>
+                    <div class="flex items-center space-x-2 p-4 rounded-xl bg-gray-100">
+                        <i class="fas fa-user-circle text-2xl text-cashpoint-pink"></i>
+                        <span class="font-semibold">${recipient.name}</span>
+                    </div>
+                    <input type="number" id="amount-input" placeholder="পরিমাণ" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                    <button id="confirm-amount-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">পরবর্তী</button>
+                    <button id="back-btn-step3" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
+                </div>
+            `;
+            document.getElementById('confirm-amount-btn').addEventListener('click', () => {
+                const amount = parseFloat(document.getElementById('amount-input').value);
+                if (isNaN(amount) || amount <= 0) {
+                    showMessage("সঠিক পরিমাণ লিখুন।");
+                    return;
+                }
+                renderSendMoneyConfirmation(recipient, amount);
+            });
+            document.getElementById('back-btn-step3').addEventListener('click', renderSendMoneyFormStep1);
+        }
+
+        // Step 4: Render the final confirmation form with PIN input
+        function renderSendMoneyConfirmation(recipient, amount) {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full p-4 space-y-6">
+                    <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">লেনদেন নিশ্চিত করুন</h2>
+                    <div class="bg-gray-100 p-4 rounded-xl space-y-2">
+                        <p class="text-sm text-gray-600">প্রাপক: <span class="font-semibold text-gray-800">${recipient.name}</span></p>
+                        <p class="text-sm text-gray-600">পরিমাণ: <span class="font-semibold text-gray-800">৳ ${amount.toFixed(2)}</span></p>
+                    </div>
+                    <input type="password" id="pin-input" placeholder="আপনার পিন দিন" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                    <button id="send-money-final-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">টাকা পাঠান</button>
+                    <button id="back-btn-step4" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
+                </div>
+            `;
+            document.getElementById('send-money-final-btn').addEventListener('click', () => handleSendMoneyTransaction(recipient, amount));
+            document.getElementById('back-btn-step4').addEventListener('click', () => renderSendMoneyFormStep3(recipient));
+        }
+
+        // Step 5: Handle the actual transaction
+        async function handleSendMoneyTransaction(recipient, amount) {
+            const pin = document.getElementById('pin-input').value;
+            if (!pin) {
+                showMessage("দয়া করে আপনার পিন দিন।");
+                return;
+            }
+
+            showLoading(true);
+
+            // Using Firestore transaction for atomic balance update
+            const senderDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+            const recipientDocRef = doc(db, `artifacts/${appId}/users/${recipient.uid}/profile/data`);
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const senderDoc = await transaction.get(senderDocRef);
+                    if (!senderDoc.exists()) {
+                        throw "আপনার প্রোফাইল খুঁজে পাওয়া যায়নি।";
+                    }
+
+                    const currentBalance = senderDoc.data().balance || 0;
+                    if (currentBalance < amount) {
+                        throw "অপর্যাপ্ত ব্যালেন্স।";
+                    }
+
+                    const recipientDoc = await transaction.get(recipientDocRef);
+                    const recipientBalance = recipientDoc.data().balance || 0;
+
+                    const newSenderBalance = currentBalance - amount;
+                    const newRecipientBalance = recipientBalance + amount;
+
+                    transaction.update(senderDocRef, { balance: newSenderBalance });
+                    transaction.update(recipientDocRef, { balance: newRecipientBalance });
+                });
+
+                showMessage(`৳ ${amount} সফলভাবে ${recipient.name}-কে পাঠানো হয়েছে!`);
+            } catch (error) {
+                console.error("Transaction failed:", error);
+                showMessage(error.message || "লেনদেন ব্যর্থ হয়েছে।");
+            } finally {
+                showLoading(false);
+                // Return to dashboard after a short delay
+                setTimeout(() => {
+                    const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                    onSnapshot(profileDocRef, (docSnap) => {
+                        const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                        renderDashboard(profileData);
+                        renderSidebar(profileData);
+                    });
+                }, 2000);
+            }
+        }
+        
         // Handle Google Sign-in
         async function handleGoogleSignIn() {
             showLoading(true);
@@ -200,10 +569,8 @@
                 const result = await signInWithPopup(auth, provider);
                 console.log("Google Sign-In Successful:", result.user);
                 showMessage("সাইন ইন সফল হয়েছে!");
-                // The onAuthStateChanged listener will handle the rest
             } catch (error) {
                 console.error("Google Sign-In Failed:", error);
-                // More specific error handling based on Firebase codes
                 if (error.code === 'auth/popup-closed-by-user') {
                     showMessage("পপ-আপ বন্ধ হয়ে গেছে। আবার চেষ্টা করুন।");
                 } else if (error.code === 'auth/cancelled-popup-request') {
@@ -211,9 +578,68 @@
                 } else if (error.code === 'auth/operation-not-allowed') {
                     showMessage("Google সাইন-ইন পদ্ধতিটি Firebase কনসোলে সক্ষম করা হয়নি।");
                 } else if (error.code === 'auth/unauthorized-domain') {
-                    // Specific message for this common error
                     showMessage("সাইন ইন ব্যর্থ হয়েছে। Firebase কনসোলে আপনার ডোমেইনটি যোগ করুন।");
                     console.error("Please add your domain to the 'Authorized domains' list in the Firebase console. This is a common setup issue.");
+                } else {
+                    showMessage("সাইন ইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
+                }
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Handle email sign-up
+        async function handleEmailSignUp() {
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+
+            if (!email || !password) {
+                showMessage("ইমেইল এবং পাসওয়ার্ড দুটিই পূরণ করুন।");
+                return;
+            }
+            if (password.length < 6) {
+                showMessage("পাসওয়ার্ড অন্তত 6 অক্ষরের হতে হবে।");
+                return;
+            }
+
+            showLoading(true);
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                showMessage("অ্যাকাউন্ট তৈরি হয়েছে! এখন প্রোফাইল সম্পূর্ণ করুন।");
+            } catch (error) {
+                console.error("Email Sign-up Failed:", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    showMessage("এই ইমেইলটি ইতিমধ্যেই ব্যবহার করা হয়েছে। লগ ইন করুন।");
+                } else if (error.code === 'auth/invalid-email') {
+                    showMessage("সঠিক ইমেইল ঠিকানা লিখুন।");
+                } else {
+                    showMessage("সাইন আপ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
+                }
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Handle email sign-in
+        async function handleEmailSignIn() {
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+
+            if (!email || !password) {
+                showMessage("ইমেইল এবং পাসওয়ার্ড দুটিই পূরণ করুন।");
+                return;
+            }
+
+            showLoading(true);
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showMessage("সাইন ইন সফল হয়েছে!");
+            } catch (error) {
+                console.error("Email Sign-in Failed:", error);
+                if (error.code === 'auth/invalid-credential') {
+                     showMessage("ভুল ইমেইল বা পাসওয়ার্ড।");
+                } else if (error.code === 'auth/user-not-found') {
+                    showMessage("কোনো ব্যবহারকারী এই ইমেইলে পাওয়া যায়নি।");
                 } else {
                     showMessage("সাইন ইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
                 }
@@ -226,22 +652,63 @@
         async function handleProfileSave(event) {
             event.preventDefault();
             const name = document.getElementById('name').value;
-            const age = document.getElementById('age').value;
+            const dob = document.getElementById('dob-input').value;
             const mobile = document.getElementById('mobile').value;
-
-            if (!name || !age || !mobile) {
-                showMessage("সব তথ্য পূরণ করুন।");
-                return;
-            }
 
             showLoading(true);
             try {
                 const docRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
-                await setDoc(docRef, { name, age, mobile });
+                await setDoc(docRef, { name, dob, mobile, balance: 0.00 });
                 showMessage("প্রোফাইল সফলভাবে সংরক্ষণ করা হয়েছে!");
             } catch (error) {
                 console.error("Error saving profile:", error);
                 showMessage("প্রোফাইল সংরক্ষণ ব্যর্থ হয়েছে।");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Handle wallet deposit and withdrawal
+        async function handleWalletAction(type) {
+            const amountInput = document.getElementById('amount-input');
+            const amount = parseFloat(amountInput.value);
+
+            if (isNaN(amount) || amount <= 0) {
+                showMessage("সঠিক পরিমাণ লিখুন।");
+                return;
+            }
+
+            showLoading(true);
+            const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const profileDoc = await transaction.get(profileDocRef);
+                    if (!profileDoc.exists()) {
+                        throw "প্রোফাইল ডকুমেন্ট বিদ্যমান নেই!";
+                    }
+
+                    const currentBalance = profileDoc.data().balance || 0;
+                    let newBalance = 0;
+
+                    if (type === 'deposit') {
+                        newBalance = currentBalance + amount;
+                        showMessage(`৳ ${amount} যোগ করা হয়েছে।`);
+                    } else if (type === 'withdraw') {
+                        if (currentBalance < amount) {
+                            showMessage("অপর্যাপ্ত ব্যালেন্স।");
+                            return;
+                        }
+                        newBalance = currentBalance - amount;
+                        showMessage(`৳ ${amount} তোলা হয়েছে।`);
+                    }
+
+                    transaction.update(profileDocRef, { balance: newBalance });
+                });
+                amountInput.value = ''; // Clear input after successful transaction
+            } catch (error) {
+                console.error("Transaction failed:", error);
+                showMessage("লেনদেন ব্যর্থ হয়েছে।");
             } finally {
                 showLoading(false);
             }
@@ -260,6 +727,17 @@
                 showMessage("লগআউট ব্যর্থ হয়েছে।");
             }
         }
+        
+        // Copy to clipboard function
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showMessage("ইউজার আইডি কপি করা হয়েছে!");
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                showMessage("কপি করতে ব্যর্থ হয়েছে।");
+            });
+        }
+        window.copyToClipboard = copyToClipboard; // Make the function globally accessible
 
         // Auth state change listener
         onAuthStateChanged(auth, async (user) => {
@@ -272,14 +750,15 @@
                     unsubscribeFromProfile();
                 }
                 unsubscribeFromProfile = onSnapshot(profileDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        renderDashboard(docSnap.data());
-                    } else {
-                        renderProfileForm();
-                    }
+                    const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    renderDashboard(profileData);
+                    renderSidebar(profileData);
                 }, (error) => {
                     console.error("Error fetching real-time profile data:", error);
                     showMessage("প্রোফাইল ডেটা লোড করতে সমস্যা হয়েছে।");
+                    const profileData = { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    renderDashboard(profileData);
+                    renderSidebar(profileData);
                 });
             } else {
                 currentUser = null;
@@ -288,6 +767,9 @@
                 }
                 renderLandingPage();
                 headerUserName.textContent = '';
+                sidebarUserName.textContent = '';
+                sidebarUserMobile.textContent = '';
+                sidebarInitial.textContent = '';
             }
             showLoading(false);
         });
@@ -309,8 +791,41 @@
             }
         };
 
-        // Event listener for the logout button
+        // Event listeners
         logoutBtn.addEventListener('click', handleLogout);
+        menuBtn.addEventListener('click', handleMenuClick);
+        updateInfoBtn.addEventListener('click', () => {
+            const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+            onSnapshot(profileDocRef, (docSnap) => {
+                const profileData = docSnap.exists() ? docSnap.data() : {};
+                renderUpdateInfoForm(profileData);
+                menuSidebar.classList.remove('open');
+            });
+        });
+
+        // Add event listener for the new Home button
+        if (homeBtn) {
+            homeBtn.addEventListener('click', () => {
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                onSnapshot(profileDocRef, (docSnap) => {
+                    const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    renderDashboard(profileData);
+                    renderSidebar(profileData);
+                });
+            });
+        }
+        // Add event listener for the Home button in the sidebar
+        if (homeBtnMenu) {
+            homeBtnMenu.addEventListener('click', () => {
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                onSnapshot(profileDocRef, (docSnap) => {
+                    const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    renderDashboard(profileData);
+                    renderSidebar(profileData);
+                });
+                menuSidebar.classList.remove('open');
+            });
+        }
     </script>
 
 </body>
