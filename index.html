@@ -197,11 +197,26 @@
         async function handleGoogleSignIn() {
             showLoading(true);
             try {
-                await signInWithPopup(auth, provider);
+                const result = await signInWithPopup(auth, provider);
+                console.log("Google Sign-In Successful:", result.user);
+                showMessage("সাইন ইন সফল হয়েছে!");
                 // The onAuthStateChanged listener will handle the rest
             } catch (error) {
                 console.error("Google Sign-In Failed:", error);
-                showMessage("সাইন ইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
+                // More specific error handling based on Firebase codes
+                if (error.code === 'auth/popup-closed-by-user') {
+                    showMessage("পপ-আপ বন্ধ হয়ে গেছে। আবার চেষ্টা করুন।");
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    showMessage("পপ-আপ অনুরোধ বাতিল হয়েছে।");
+                } else if (error.code === 'auth/operation-not-allowed') {
+                    showMessage("Google সাইন-ইন পদ্ধতিটি Firebase কনসোলে সক্ষম করা হয়নি।");
+                } else if (error.code === 'auth/unauthorized-domain') {
+                    // Specific message for this common error
+                    showMessage("সাইন ইন ব্যর্থ হয়েছে। Firebase কনসোলে আপনার ডোমেইনটি যোগ করুন।");
+                    console.error("Please add your domain to the 'Authorized domains' list in the Firebase console. This is a common setup issue.");
+                } else {
+                    showMessage("সাইন ইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
+                }
             } finally {
                 showLoading(false);
             }
@@ -277,14 +292,14 @@
             showLoading(false);
         });
 
-        // Initial sign-in with custom token if available
+        // Initial sign-in with custom token or anonymously
         window.onload = async () => {
             showLoading(true);
             try {
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
-                    await signInAnonymously(auth); // Sign in anonymously if no token exists
+                    await signInAnonymously(auth);
                 }
             } catch (error) {
                 console.error("Firebase Auth initialization failed:", error);
