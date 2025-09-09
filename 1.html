@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashPoint - মোবাইল ব্যাংকিং</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .bg-cashpoint-pink {
+            background-color: #E2136E;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <!-- Main Container -->
+    <div id="app-container" class="relative w-full max-w-md bg-white shadow-lg rounded-2xl overflow-hidden min-h-[600px] flex flex-col">
+        <!-- Message Box -->
+        <div id="message-box" class="absolute top-4 left-1/2 -translate-x-1/2 z-50 p-3 rounded-lg text-sm transition-all duration-300 transform scale-0" style="background-color: #1a1a1a; color: white;"></div>
+
+        <!-- Header -->
+        <header id="header" class="w-full bg-cashpoint-pink text-white py-4 px-6 flex items-center justify-between shadow-md">
+            <h1 class="text-2xl font-bold">CashPoint</h1>
+            <div id="user-info-header" class="flex items-center space-x-2">
+                <span id="header-user-name" class="font-medium text-sm"></span>
+                <button id="logout-btn" class="bg-white text-cashpoint-pink text-sm font-semibold px-3 py-1 rounded-full shadow-lg transition-transform transform hover:scale-105">লগআউট</button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="flex-grow flex flex-col p-6 overflow-y-auto">
+            <!-- Content will be rendered here based on auth state and profile status -->
+        </main>
+        
+        <!-- Loading Spinner -->
+        <div id="loading-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-40 hidden">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-cashpoint-pink border-t-transparent"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment
+        const firebaseConfig = {
+            apiKey: "AIzaSyCb9v4Q8XsaBKpnopMHE_5_aXEEMkEQork",
+            authDomain: "cashpoint-f8b51.firebaseapp.com",
+            projectId: "cashpoint-f8b51",
+            storageBucket: "cashpoint-f8b51.firebasestorage.app",
+            messagingSenderId: "50891144664",
+            appId: "1:50891144664:web:e90f63977c95c86c04c6ad",
+            measurementId: "G-WJXSMFBEE6"
+        };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentUser = null;
+        let unsubscribeFromProfile = null;
+
+        // UI Elements
+        const mainContent = document.getElementById('main-content');
+        const headerUserName = document.getElementById('header-user-name');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const messageBox = document.getElementById('message-box');
+
+        // Function to show a message
+        function showMessage(text, duration = 3000) {
+            messageBox.textContent = text;
+            messageBox.classList.remove('scale-0');
+            messageBox.classList.add('scale-100');
+            setTimeout(() => {
+                messageBox.classList.remove('scale-100');
+                messageBox.classList.add('scale-0');
+            }, duration);
+        }
+
+        // Display loading state
+        function showLoading(show) {
+            if (show) {
+                loadingOverlay.classList.remove('hidden');
+            } else {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        // Render the logged-out landing page
+        function renderLandingPage() {
+            mainContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full p-4 text-center space-y-8">
+                    <img src="https://placehold.co/150x150/E2136E/FFFFFF?text=CashPoint" alt="CashPoint Logo" class="w-28 h-28 mb-4 rounded-full">
+                    <h2 class="text-3xl font-bold text-gray-800">CashPoint-এ স্বাগতম</h2>
+                    <p class="text-gray-600">আপনার মোবাইল ব্যাংকিং যাত্রা শুরু করুন।</p>
+                    <button id="google-signin-btn" class="w-full max-w-xs py-3 px-6 bg-cashpoint-pink text-white font-bold rounded-full shadow-lg flex items-center justify-center space-x-2 transition-transform transform hover:scale-105">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.000 12.189c0-.756-.068-1.503-.198-2.235h-9.802v4.195h5.592c-.244 1.348-.992 2.484-2.112 3.284v2.704h3.488c2.043-1.892 3.228-4.664 3.228-8.086z"/><path d="M12.000 22.000c2.932 0 5.378-.973 7.168-2.617l-3.488-2.704c-.957.643-2.18.995-3.68.995-2.834 0-5.232-1.92-6.096-4.508h-3.68v2.846c1.782 3.535 5.253 5.988 9.776 5.988z"/><path d="M5.904 13.567c-.201-.643-.314-1.32-.314-2.007s.113-1.364.314-2.007v-2.846h-3.68c-.645 1.288-1.024 2.766-1.024 4.853s.379 3.565 1.024 4.853l3.68-2.846z"/><path d="M12.000 5.492c1.574 0 2.981.54 4.095 1.579l3.078-3.078c-1.874-1.742-4.298-2.822-7.173-2.822-4.523 0-7.994 2.453-9.776 5.988l3.68 2.846c.864-2.588 3.262-4.508 6.096-4.508z"/></svg>
+                        <span>Google দিয়ে সাইন ইন</span>
+                    </button>
+                    <p class="mt-4 text-xs text-gray-400">আপনার ব্যক্তিগত ডেটা গোপনীয় রাখা হবে।</p>
+                </div>
+            `;
+            document.getElementById('google-signin-btn').addEventListener('click', handleGoogleSignIn);
+        }
+
+        // Render the profile form page
+        function renderProfileForm() {
+            mainContent.innerHTML = `
+                <div class="flex flex-col items-center h-full p-4 space-y-6">
+                    <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">আপনার প্রোফাইল সম্পূর্ণ করুন</h2>
+                    <form id="profile-form" class="w-full space-y-4">
+                        <input type="text" id="name" placeholder="আপনার নাম" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink" required>
+                        <input type="number" id="age" placeholder="আপনার বয়স" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink" required>
+                        <input type="text" id="mobile" placeholder="আপনার মোবাইল নম্বর" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink" required>
+                        <button type="submit" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">প্রোফাইল সংরক্ষণ করুন</button>
+                    </form>
+                    <p class="text-sm text-gray-500 mt-4">User ID: <span class="font-mono text-xs break-all">${currentUser.uid}</span></p>
+                </div>
+            `;
+            document.getElementById('profile-form').addEventListener('submit', handleProfileSave);
+        }
+
+        // Render the main dashboard
+        function renderDashboard(profileData) {
+            const userName = profileData.name || 'ব্যবহারকারী';
+            const userAge = profileData.age ? `বয়স: ${profileData.age}` : '';
+            const userMobile = profileData.mobile ? `মোবাইল: ${profileData.mobile}` : '';
+
+            headerUserName.textContent = userName;
+
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full p-4 space-y-6">
+                    <div class="bg-cashpoint-pink text-white rounded-2xl p-6 shadow-xl flex flex-col items-start space-y-2">
+                        <p class="text-sm">ব্যালেন্স</p>
+                        <div class="flex items-end justify-between w-full">
+                            <span class="text-3xl font-bold">৳ 0.00</span>
+                            <div class="flex items-center space-x-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M12 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.135 2.25 12 6.615 2.25 12 2.25zm0 1.5a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5zm0 13.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM12 9a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5H12zM12 7.5a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-4 text-center text-gray-600">
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full mb-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cashpoint-pink"><path d="M10.875 9.75c0 .542-.087 1.077-.254 1.589L9.52 13.52a1.875 1.875 0 01-2.652 0H6.25c-1.03 0-1.875-.845-1.875-1.875v-1.5c0-1.03.845-1.875 1.875-1.875h.008c.361 0 .695.112.977.307a3.064 3.064 0 002.344 0c.282-.195.616-.307.977-.307h.008c1.03 0 1.875.845 1.875 1.875v.75zM15.75 12a1.875 1.875 0 100-3.75 1.875 1.875 0 000 3.75zM12 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.135 2.25 12 6.615 2.25 12 2.25zm0 1.5a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5z"/></svg>
+                            </div>
+                            <span class="text-xs mt-1 font-medium">সেন্ড মানি</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full mb-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cashpoint-pink"><path d="M12.000 1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zM18.995 5.567a.75.75 0 01.53.22l1.061 1.06a.75.75 0 010 1.06L14.75 13.75l-1.06-1.06a.75.75 0 010-1.06l1.06-1.06a.75.75 0 011.06 0zm-10.742 8.784a.75.75 0 01.22.53v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zM1.5 12.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM5.567 19.005a.75.75 0 01.53-.22l1.06 1.06a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 010-1.06l1.06-1.06a.75.75 0 01.53-.22zM2.25 12c0 2.28 1.157 4.31 2.915 5.518a.75.75 0 00.585-.929 6.75 6.75 0 018.917-8.917c.594-.287 1.045-.192 1.343.153l1.838 1.838a.75.75 0 001.06-1.06L15.42 5.09a.75.75 0 00-.53-.222c-2.333-.538-4.78-.538-7.113 0a.75.75 0 00-.53.222l-1.838 1.838a.75.75 0 000 1.06z"/></svg>
+                            </div>
+                            <span class="text-xs mt-1 font-medium">ক্যাশ আউট</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full mb-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cashpoint-pink"><path d="M12.000 1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zM18.995 5.567a.75.75 0 01.53.22l1.061 1.06a.75.75 0 010 1.06L14.75 13.75l-1.06-1.06a.75.75 0 010-1.06l1.06-1.06a.75.75 0 011.06 0zm-10.742 8.784a.75.75 0 01.22.53v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zM1.5 12.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM5.567 19.005a.75.75 0 01.53-.22l1.06 1.06a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 010-1.06l1.06-1.06a.75.75 0 01.53-.22zM2.25 12c0 2.28 1.157 4.31 2.915 5.518a.75.75 0 00.585-.929 6.75 6.75 0 018.917-8.917c.594-.287 1.045-.192 1.343.153l1.838 1.838a.75.75 0 001.06-1.06L15.42 5.09a.75.75 0 00-.53-.222c-2.333-.538-4.78-.538-7.113 0a.75.75 0 00-.53.222l-1.838 1.838a.75.75 0 000 1.06z"/></svg>
+                            </div>
+                            <span class="text-xs mt-1 font-medium">পেমেন্ট</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full mb-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cashpoint-pink"><path fill-rule="evenodd" d="M1.5 8.25a3 3 0 013-3h15a3 3 0 013 3v6a3 3 0 01-3 3H4.5a3 3 0 01-3-3v-6zM15 9a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75A.75.75 0 0115 9zm3.75 0a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75A.75.75 0 0118.75 9zm1.5 0a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75a.75.75 0 01.75.75zM15 13.5a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75a.75.75 0 01.75.75zm3.75 0a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75a.75.75 0 01.75.75zm1.5 0a.75.75 0 01-.75.75h-.75a.75.75 0 010-1.5h.75a.75.75 0 01.75.75z" clip-rule="evenodd" /></svg>
+                            </div>
+                            <span class="text-xs mt-1 font-medium">বিল পে</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-xl space-y-4">
+                        <div class="flex items-center space-x-2 text-gray-800">
+                            <h3 class="font-bold">আপনার প্রোফাইল</h3>
+                        </div>
+                        <div class="border-t border-gray-200 pt-4">
+                            <p class="text-sm text-gray-600">আপনার নাম: <span class="font-medium text-gray-800">${profileData.name || 'যোগ করা হয়নি'}</span></p>
+                            <p class="text-sm text-gray-600 mt-2">আপনার বয়স: <span class="font-medium text-gray-800">${profileData.age || 'যোগ করা হয়নি'}</span></p>
+                            <p class="text-sm text-gray-600 mt-2">আপনার মোবাইল: <span class="font-medium text-gray-800">${profileData.mobile || 'যোগ করা হয়নি'}</span></p>
+                            <p class="text-sm text-gray-500 mt-4">User ID: <span class="font-mono text-xs break-all">${currentUser.uid}</span></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Handle Google Sign-in
+        async function handleGoogleSignIn() {
+            showLoading(true);
+            try {
+                await signInWithPopup(auth, provider);
+                // The onAuthStateChanged listener will handle the rest
+            } catch (error) {
+                console.error("Google Sign-In Failed:", error);
+                showMessage("সাইন ইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Handle user profile data saving
+        async function handleProfileSave(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const age = document.getElementById('age').value;
+            const mobile = document.getElementById('mobile').value;
+
+            if (!name || !age || !mobile) {
+                showMessage("সব তথ্য পূরণ করুন।");
+                return;
+            }
+
+            showLoading(true);
+            try {
+                const docRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                await setDoc(docRef, { name, age, mobile });
+                showMessage("প্রোফাইল সফলভাবে সংরক্ষণ করা হয়েছে!");
+            } catch (error) {
+                console.error("Error saving profile:", error);
+                showMessage("প্রোফাইল সংরক্ষণ ব্যর্থ হয়েছে।");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Handle user logout
+        async function handleLogout() {
+            try {
+                if (unsubscribeFromProfile) {
+                    unsubscribeFromProfile(); // Stop listening for profile changes
+                }
+                await signOut(auth);
+                showMessage("আপনি সফলভাবে লগআউট করেছেন।");
+            } catch (error) {
+                console.error("Logout Failed:", error);
+                showMessage("লগআউট ব্যর্থ হয়েছে।");
+            }
+        }
+
+        // Auth state change listener
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
+                
+                // Set up a real-time listener for the user's profile data
+                if (unsubscribeFromProfile) {
+                    unsubscribeFromProfile();
+                }
+                unsubscribeFromProfile = onSnapshot(profileDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        renderDashboard(docSnap.data());
+                    } else {
+                        renderProfileForm();
+                    }
+                }, (error) => {
+                    console.error("Error fetching real-time profile data:", error);
+                    showMessage("প্রোফাইল ডেটা লোড করতে সমস্যা হয়েছে।");
+                });
+            } else {
+                currentUser = null;
+                if (unsubscribeFromProfile) {
+                    unsubscribeFromProfile();
+                }
+                renderLandingPage();
+                headerUserName.textContent = '';
+            }
+            showLoading(false);
+        });
+
+        // Initial sign-in with custom token if available
+        window.onload = async () => {
+            showLoading(true);
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth); // Sign in anonymously if no token exists
+                }
+            } catch (error) {
+                console.error("Firebase Auth initialization failed:", error);
+                showMessage("অটোমেটিক সাইন ইন ব্যর্থ হয়েছে।");
+            } finally {
+                showLoading(false);
+            }
+        };
+
+        // Event listener for the logout button
+        logoutBtn.addEventListener('click', handleLogout);
+    </script>
+
+</body>
+</html>
