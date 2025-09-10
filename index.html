@@ -323,7 +323,7 @@
             document.getElementById('profile-form').addEventListener('submit', handleProfileSave);
             document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
                 // Return to dashboard without forcing update
-                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                 onSnapshot(profileDocRef, (docSnap) => {
                     const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
                     renderDashboard(profileData);
@@ -413,7 +413,7 @@
             `;
             document.getElementById('add-money-submit-btn').addEventListener('click', () => handleWalletAction('deposit'));
             document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
-                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                 onSnapshot(profileDocRef, (docSnap) => {
                     const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
                     renderDashboard(profileData);
@@ -446,7 +446,7 @@
 
             findRecipientBtn.addEventListener('click', findRecipientAndRenderFormStep2);
             document.getElementById('cancel-btn').addEventListener('click', () => {
-                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                 onSnapshot(profileDocRef, (docSnap) => {
                     const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
                     renderDashboard(profileData);
@@ -469,44 +469,42 @@
             showLoading(true);
             try {
                 const usersCollectionRef = collection(db, `artifacts/${appId}/users/`);
-                let recipientDoc = null;
-                let recipientUid = null;
+                let recipientDocSnap = null;
         
                 if (recipientId.includes('@')) {
                     // Case 1: Search by email
-                    const qEmail = query(usersCollectionRef, where("profile.data.email", "==", recipientId));
+                    const qEmail = query(usersCollectionRef, where("email", "==", recipientId));
                     const querySnapshotEmail = await getDocs(qEmail);
                     if (!querySnapshotEmail.empty) {
-                        recipientDoc = querySnapshotEmail.docs[0];
-                        recipientUid = recipientDoc.id;
+                        recipientDocSnap = querySnapshotEmail.docs[0];
                     }
                 } else if (!isNaN(recipientId) && recipientId.length > 5) {
                     // Case 2: Search by mobile number
-                    const qMobile = query(usersCollectionRef, where("profile.data.mobile", "==", recipientId));
+                    const qMobile = query(usersCollectionRef, where("mobile", "==", recipientId));
                     const querySnapshotMobile = await getDocs(qMobile);
                     if (!querySnapshotMobile.empty) {
-                        recipientDoc = querySnapshotMobile.docs[0];
-                        recipientUid = recipientDoc.id;
+                        recipientDocSnap = querySnapshotMobile.docs[0];
                     }
                 } else {
                     // Case 3: Assume it's a UID and search directly
-                    const profileDocRef = doc(db, `artifacts/${appId}/users/${recipientId}/profile/data`);
-                    const profileDocSnap = await getDoc(profileDocRef);
-                    if (profileDocSnap.exists()) {
-                        recipientDoc = profileDocSnap;
-                        recipientUid = profileDocSnap.ref.parent.parent.id;
+                    const docRef = doc(db, `artifacts/${appId}/users/${recipientId}`);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        recipientDocSnap = docSnap;
                     }
                 }
         
-                if (recipientDoc) {
+                if (recipientDocSnap) {
+                    const recipientUid = recipientDocSnap.id;
+                    const recipientProfileData = recipientDocSnap.data();
+
                     if (recipientUid === currentUser.uid) {
                         showMessage("আপনি নিজের কাছে টাকা পাঠাতে পারবেন না।");
                         showLoading(false);
                         return;
                     }
-                    const data = recipientDoc.data();
-                    recipientData = { uid: recipientUid, name: data.name, mobile: data.mobile };
-                    recipientInfoDiv.textContent = `প্রাপক: ${data.name} (${data.mobile})`;
+                    recipientData = { uid: recipientUid, name: recipientProfileData.name, mobile: recipientProfileData.mobile };
+                    recipientInfoDiv.textContent = `প্রাপক: ${recipientData.name} (${recipientData.mobile})`;
                     recipientInfoDiv.classList.add('text-green-600');
                     renderSendMoneyFormStep3(recipientData);
                 } else {
@@ -531,7 +529,7 @@
         // Step 3: Render the amount form (updated to match the new image)
         async function renderSendMoneyFormStep3(recipient) {
             showLoading(true);
-            const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+            const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
             const docSnap = await getDoc(profileDocRef);
             showLoading(false);
             const currentBalance = docSnap.exists() ? docSnap.data().balance : 0;
@@ -646,8 +644,8 @@
             showLoading(true);
 
             // Using Firestore transaction for atomic balance update
-            const senderDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
-            const recipientDocRef = doc(db, `artifacts/${appId}/users/${recipient.uid}/profile/data`);
+            const senderDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
+            const recipientDocRef = doc(db, `artifacts/${appId}/users/${recipient.uid}`);
 
             try {
                 await runTransaction(db, async (transaction) => {
@@ -687,7 +685,7 @@
                 showLoading(false);
                 // Return to dashboard after a short delay
                 setTimeout(() => {
-                    const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                    const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                     onSnapshot(profileDocRef, (docSnap) => {
                         const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
                         renderDashboard(profileData);
@@ -800,7 +798,7 @@
             try {
                 // Check if mobile number is already in use by another user
                 const allUsersCollectionRef = collection(db, `artifacts/${appId}/users/`);
-                const q = query(allUsersCollectionRef, where("profile.data.mobile", "==", mobile));
+                const q = query(allUsersCollectionRef, where("mobile", "==", mobile));
                 const querySnapshot = await getDocs(q);
 
                 let mobileExists = false;
@@ -815,8 +813,9 @@
                     showLoading(false);
                     return;
                 }
-
-                const docRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                
+                // Now save all profile data to the main user document
+                const docRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                 const pinHash = hashPin(pin);
                 await setDoc(docRef, { name, dob, mobile, pinHash, balance: 0.00, email: currentUser.email });
                 showMessage("প্রোফাইল সফলভাবে সংরক্ষণ করা হয়েছে!");
@@ -839,7 +838,7 @@
             }
 
             showLoading(true);
-            const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+            const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
 
             try {
                 await runTransaction(db, async (transaction) => {
@@ -903,7 +902,7 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                const profileDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
                 
                 // Set up a real-time listener for the user's profile data
                 if (unsubscribeFromProfile) {
@@ -930,7 +929,7 @@
                 sidebarUserName.textContent = '';
                 sidebarUserMobile.textContent = '';
                 sidebarInitial.textContent = '';
-                // Logout হওয়ার পর sidebar hide করুন
+                // Logout হওয়ার পর sidebar hide করুন
                 menuSidebar.classList.remove('open');
             }
             showLoading(false);
@@ -957,7 +956,7 @@
         logoutBtn.addEventListener('click', handleLogout);
         menuBtn.addEventListener('click', handleMenuClick);
         updateInfoBtn.addEventListener('click', () => {
-            const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+            const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
             onSnapshot(profileDocRef, (docSnap) => {
                 const profileData = docSnap.exists() ? docSnap.data() : {};
                 renderUpdateInfoForm(profileData);
@@ -968,7 +967,7 @@
         // Add event listener for the new Home button
         if (homeBtn) {
             homeBtn.addEventListener('click', () => {
-                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                 onSnapshot(profileDocRef, (docSnap) => {
                     const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
                     renderDashboard(profileData);
@@ -979,7 +978,7 @@
         // Add event listener for the Home button in the sidebar
         if (homeBtnMenu) {
             homeBtnMenu.addEventListener('click', () => {
-                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                 onSnapshot(profileDocRef, (docSnap) => {
                     const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
                     renderDashboard(profileData);
