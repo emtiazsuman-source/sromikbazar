@@ -930,6 +930,8 @@
                 sidebarUserName.textContent = '';
                 sidebarUserMobile.textContent = '';
                 sidebarInitial.textContent = '';
+                // Logout হওয়ার পর sidebar hide করুন
+                menuSidebar.classList.remove('open');
             }
             showLoading(false);
         });
