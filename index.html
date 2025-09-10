@@ -428,11 +428,23 @@
                 <div class="flex flex-col h-full p-4 space-y-6">
                     <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">টাকা পাঠান</h2>
                     <input type="text" id="recipient-input" placeholder=" প্রাপকের ইমেইল বা মোবাইল নম্বর" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                    <div id="recipient-info" class="mt-2 text-sm text-center"></div>
                     <button id="find-recipient-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">পরবর্তী</button>
                     <button id="cancel-btn" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">বাতিল</button>
                 </div>
             `;
-            document.getElementById('find-recipient-btn').addEventListener('click', findRecipientAndRenderFormStep2);
+            const recipientInput = document.getElementById('recipient-input');
+            const findRecipientBtn = document.getElementById('find-recipient-btn');
+
+            recipientInput.addEventListener('input', () => {
+                // Clear recipient info when input changes
+                document.getElementById('recipient-info').textContent = '';
+                findRecipientBtn.disabled = false;
+                findRecipientBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                findRecipientBtn.classList.add('bg-cashpoint-pink');
+            });
+
+            findRecipientBtn.addEventListener('click', findRecipientAndRenderFormStep2);
             document.getElementById('cancel-btn').addEventListener('click', () => {
                 const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
                 onSnapshot(profileDocRef, (docSnap) => {
@@ -446,40 +458,71 @@
         // Step 2: Find the recipient and render the amount form
         async function findRecipientAndRenderFormStep2() {
             const recipientId = document.getElementById('recipient-input').value;
+            const recipientInfoDiv = document.getElementById('recipient-info');
+            const findRecipientBtn = document.getElementById('find-recipient-btn');
+
             if (!recipientId) {
                 showMessage("দয়া করে প্রাপকের তথ্য দিন।");
                 return;
             }
-
+        
             showLoading(true);
             try {
-                const qEmail = query(collection(db, `artifacts/${appId}/users/${currentUser.uid}/profile`), where("email", "==", recipientId));
-                const querySnapshotEmail = await getDocs(qEmail);
-
-                const qMobile = query(collection(db, `artifacts/${appId}/users/${currentUser.uid}/profile`), where("mobile", "==", recipientId));
-                const querySnapshotMobile = await getDocs(qMobile);
-
+                const usersCollectionRef = collection(db, `artifacts/${appId}/users/`);
                 let recipientDoc = null;
                 let recipientUid = null;
-
-                if (!querySnapshotEmail.empty) {
-                    recipientDoc = querySnapshotEmail.docs[0];
-                    recipientUid = recipientDoc.id;
-                } else if (!querySnapshotMobile.empty) {
-                    recipientDoc = querySnapshotMobile.docs[0];
-                    recipientUid = recipientDoc.id;
-                }
                 
+                // First, try to find by mobile number
+                const qMobile = query(usersCollectionRef, where("profile.data.mobile", "==", recipientId));
+                const querySnapshotMobile = await getDocs(qMobile);
+        
+                if (!querySnapshotMobile.empty) {
+                    const doc = querySnapshotMobile.docs[0];
+                    if (doc.id === currentUser.uid) {
+                        showMessage("আপনি নিজের কাছে টাকা পাঠাতে পারবেন না।");
+                        showLoading(false);
+                        return;
+                    }
+                    recipientUid = doc.id;
+                    const profileDocRef = doc(db, `artifacts/${appId}/users/${recipientUid}/profile/data`);
+                    recipientDoc = await getDoc(profileDocRef);
+                } else {
+                    // If not found by mobile, check if the input is a user ID (email)
+                    const profileDocRef = doc(db, `artifacts/${appId}/users/${recipientId}/profile/data`);
+                    const profileDocSnap = await getDoc(profileDocRef);
+        
+                    if (profileDocSnap.exists()) {
+                        if (profileDocSnap.ref.parent.parent.id === currentUser.uid) {
+                            showMessage("আপনি নিজের কাছে টাকা পাঠাতে পারবেন না।");
+                            showLoading(false);
+                            return;
+                        }
+                        recipientDoc = profileDocSnap;
+                        recipientUid = profileDocSnap.ref.parent.parent.id;
+                    }
+                }
+        
                 if (recipientDoc && recipientUid) {
                     const data = recipientDoc.data();
                     recipientData = { uid: recipientUid, name: data.name, mobile: data.mobile };
+                    recipientInfoDiv.textContent = `প্রাপক: ${recipientData.name} (${recipientData.mobile})`;
+                    recipientInfoDiv.classList.add('text-green-600');
+                    findRecipientBtn.disabled = false;
                     renderSendMoneyFormStep3(recipientData);
                 } else {
-                    showMessage("প্রাপককে খুঁজে পাওয়া যায়নি।");
+                    recipientInfoDiv.textContent = 'প্রাপককে খুঁজে পাওয়া যায়নি।';
+                    recipientInfoDiv.classList.add('text-red-600');
+                    findRecipientBtn.disabled = true;
+                    findRecipientBtn.classList.remove('bg-cashpoint-pink');
+                    findRecipientBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
                 }
             } catch (error) {
                 console.error("Error finding recipient:", error);
-                showMessage("প্রাপক খোঁজার সময় একটি ত্রুটি হয়েছে।");
+                recipientInfoDiv.textContent = 'প্রাপক খোঁজার সময় একটি ত্রুটি হয়েছে।';
+                recipientInfoDiv.classList.add('text-red-600');
+                findRecipientBtn.disabled = true;
+                findRecipientBtn.classList.remove('bg-cashpoint-pink');
+                findRecipientBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
             } finally {
                 showLoading(false);
             }
@@ -755,6 +798,24 @@
 
             showLoading(true);
             try {
+                // Check if mobile number is already in use by another user
+                const allUsersCollectionRef = collection(db, `artifacts/${appId}/users/`);
+                const q = query(allUsersCollectionRef, where("profile.data.mobile", "==", mobile));
+                const querySnapshot = await getDocs(q);
+
+                let mobileExists = false;
+                querySnapshot.forEach(doc => {
+                    if (doc.id !== currentUser.uid) {
+                        mobileExists = true;
+                    }
+                });
+
+                if (mobileExists) {
+                    showMessage("এই মোবাইল নম্বরটি ইতিমধ্যেই ব্যবহার করা হয়েছে।");
+                    showLoading(false);
+                    return;
+                }
+
                 const docRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/data`);
                 const pinHash = hashPin(pin);
                 await setDoc(docRef, { name, dob, mobile, pinHash, balance: 0.00 });
