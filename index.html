@@ -49,6 +49,21 @@
             opacity: 1;
             pointer-events: all;
         }
+        /* New styles for admin panel tabs */
+        .tab-btn.add-money-active {
+            border-color: #E2136E;
+            color: #E2136E;
+        }
+        .tab-btn.transfer-money-active {
+            border-color: #3B82F6; /* A blue color for contrast */
+            color: #3B82F6;
+        }
+        .add-money-card {
+            border-left: 4px solid #E2136E;
+        }
+        .transfer-money-card {
+            border-left: 4px solid #3B82F6;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -64,6 +79,8 @@
             <h1 class="text-2xl font-bold">CashPoint</h1>
             <div id="user-info-header" class="flex items-center space-x-2">
                 <span id="header-user-name" class="font-medium text-sm"></span>
+                <!-- Admin settings icon -->
+                <i id="admin-settings-btn" class="fas fa-cog text-xl cursor-pointer ml-4 hidden"></i>
             </div>
         </header>
 
@@ -161,7 +178,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, runTransaction, collection, query, where, getDocs, getDoc, addDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, runTransaction, collection, query, where, getDocs, getDoc, addDoc, serverTimestamp, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables provided by the environment
         const firebaseConfig = {
@@ -187,6 +204,7 @@
         let unsubscribeFromRequests = null;
         let unsubscribeFromTransfers = null;
         let recipientData = {}; // To store recipient info for the transaction
+        let isAdmin = false;
 
         // Admin numbers for manual transactions
         const adminNumbers = {
@@ -210,6 +228,7 @@
         const homeBtn = document.getElementById('home-btn');
         const homeBtnMenu = document.getElementById('home-btn-menu');
         const statementBtnMenu = document.getElementById('statement-btn-menu');
+        const adminSettingsBtn = document.getElementById('admin-settings-btn');
         
         // Function to show a message
         function showMessage(text, duration = 3000) {
@@ -732,22 +751,27 @@
 
             showLoading(true);
             try {
-                await addDoc(collection(db, `artifacts/${appId}/add_money_requests`), {
-                    userId: currentUser.uid,
-                    amount: amount,
-                    txId: txId,
-                    method: method,
-                    status: 'pending',
-                    timestamp: serverTimestamp()
-                });
                 // Add a record in user's statement as 'pending'
-                await addDoc(collection(db, `artifacts/${appId}/users/${currentUser.uid}/transactions`), {
+                const txCollectionRef = collection(db, `artifacts/${appId}/users/${currentUser.uid}/transactions`);
+                const newTxDocRef = await addDoc(txCollectionRef, {
                     type: 'deposit',
                     amount: amount,
                     description: `Deposit via ${method.toUpperCase()}`,
                     status: 'pending',
                     timestamp: serverTimestamp()
                 });
+                
+                // Add transaction request to the collection with reference to the user's transaction
+                await addDoc(collection(db, `artifacts/${appId}/add_money_requests`), {
+                    userId: currentUser.uid,
+                    amount: amount,
+                    txId: txId,
+                    method: method,
+                    status: 'pending',
+                    timestamp: serverTimestamp(),
+                    transactionRef: newTxDocRef.id // Store the transaction document ID
+                });
+
                 showMessage("আপনার রিকোয়েস্ট সফলভাবে জমা হয়েছে।");
             } catch (error) {
                 console.error("Error submitting request:", error);
@@ -1114,7 +1138,8 @@
                     balance: 0.00,
                     mobile: '',
                     dob: '',
-                    pinHash: 0 // Placeholder until user sets pin
+                    pinHash: 0, // Placeholder until user sets pin
+                    isAdmin: false // Default user role
                 });
                 
                 showMessage("অ্যাকাউন্ট তৈরি হয়েছে! এখন প্রোফাইল সম্পূর্ণ করুন।");
@@ -1205,6 +1230,208 @@
                 showLoading(false);
             }
         }
+        
+        // Render the Admin Dashboard
+        function renderAdminDashboard() {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full p-4 space-y-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">অ্যাডমিন প্যানেল</h2>
+                    <!-- Tab Navigation -->
+                    <div class="flex space-x-2 border-b border-gray-300">
+                        <button id="add-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">অ্যাড মানি</button>
+                        <button id="transfer-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">ট্রান্সফার মানি</button>
+                    </div>
+                    <!-- Status Filters -->
+                    <div id="status-filters" class="flex space-x-2">
+                        <button class="status-btn active py-1 px-3 text-xs font-medium rounded-full bg-cashpoint-pink text-white" data-status="pending">অপেক্ষমাণ</button>
+                        <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="completed">সম্পূর্ণ</button>
+                        <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="rejected">বাতিল</button>
+                    </div>
+                    <div id="requests-list" class="space-y-4">
+                        <!-- Requests will be loaded here -->
+                    </div>
+                    <button id="back-to-dashboard-btn" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
+                </div>
+            `;
+
+            let currentTab = 'add-money';
+            let currentStatus = 'pending';
+
+            const addMoneyTab = document.getElementById('add-money-tab');
+            const transferMoneyTab = document.getElementById('transfer-money-tab');
+            
+            addMoneyTab.classList.add('add-money-active');
+
+            addMoneyTab.addEventListener('click', () => {
+                currentTab = 'add-money';
+                addMoneyTab.classList.add('add-money-active');
+                transferMoneyTab.classList.remove('transfer-money-active');
+                loadRequests(currentTab, currentStatus);
+            });
+            transferMoneyTab.addEventListener('click', () => {
+                currentTab = 'transfer-money';
+                transferMoneyTab.classList.add('transfer-money-active');
+                addMoneyTab.classList.remove('add-money-active');
+                loadRequests(currentTab, currentStatus);
+            });
+            document.querySelectorAll('.status-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    document.querySelectorAll('.status-btn').forEach(btn => {
+                        btn.classList.remove('bg-cashpoint-pink', 'bg-blue-500', 'text-white');
+                        btn.classList.add('bg-gray-300', 'text-gray-700');
+                    });
+                    e.target.classList.add('bg-cashpoint-pink', 'text-white');
+                    currentStatus = e.target.dataset.status;
+                    loadRequests(currentTab, currentStatus);
+                });
+            });
+
+            document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
+                onSnapshot(profileDocRef, (docSnap) => {
+                    const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    renderDashboard(profileData);
+                    renderSidebar(profileData);
+                });
+            });
+
+            loadRequests(currentTab, currentStatus);
+        }
+
+        async function loadRequests(type, status) {
+            showLoading(true);
+            const requestsListEl = document.getElementById('requests-list');
+            requestsListEl.innerHTML = '';
+            
+            const collectionName = type === 'add-money' ? 'add_money_requests' : 'money_transfer_requests';
+            const q = query(collection(db, `artifacts/${appId}/${collectionName}`), where('status', '==', status));
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                const requests = [];
+                querySnapshot.forEach(doc => {
+                    requests.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (requests.length === 0) {
+                    requestsListEl.innerHTML = `<p class="text-center text-gray-500 mt-4">এই মুহূর্তে কোনো ${status === 'pending' ? 'অপেক্ষমাণ' : status === 'completed' ? 'সম্পূর্ণ' : 'বাতিল'} রিকোয়েস্ট নেই।</p>`;
+                } else {
+                    requests.forEach(request => {
+                        const requestEl = document.createElement('div');
+                        requestEl.className = `p-4 bg-white rounded-lg shadow-sm flex flex-col space-y-2 ${type === 'add-money' ? 'add-money-card' : 'transfer-money-card'}`;
+                        
+                        let details = '';
+                        if (type === 'add-money') {
+                            details = `<p class="text-sm">ট্রানজেকশন আইডি: <span class="font-mono">${request.txId}</span></p>`;
+                        } else {
+                            details = `<p class="text-sm">প্রাপকের নম্বর: <span class="font-mono">${request.recipientNumber}</span></p>`;
+                        }
+                        
+                        let buttons = '';
+                        if (status === 'pending') {
+                            buttons = `
+                                <div class="flex space-x-2 mt-2">
+                                    <button class="accept-btn bg-green-500 text-white px-3 py-1 text-xs rounded-full" data-id="${request.id}" data-type="${type}" data-user-id="${request.userId}" data-amount="${request.amount}" data-transaction-ref="${request.transactionRef || ''}">গ্রহণ</button>
+                                    <button class="reject-btn bg-red-500 text-white px-3 py-1 text-xs rounded-full" data-id="${request.id}" data-type="${type}" data-user-id="${request.userId}" data-amount="${request.amount}" data-transaction-ref="${request.transactionRef || ''}">বাতিল</button>
+                                </div>
+                            `;
+                        }
+
+                        requestEl.innerHTML = `
+                            <p class="font-bold text-gray-800">পরিমাণ: ৳ ${request.amount.toFixed(2)}</p>
+                            <p class="text-sm">ইউজার আইডি: <span class="font-mono break-all">${request.userId}</span></p>
+                            ${details}
+                            <p class="text-xs text-gray-500">সময়: ${request.timestamp ? new Date(request.timestamp.toDate()).toLocaleString() : 'N/A'}</p>
+                            ${buttons}
+                        `;
+                        requestsListEl.appendChild(requestEl);
+                    });
+
+                    document.querySelectorAll('.accept-btn').forEach(button => button.addEventListener('click', handleRequestAction));
+                    document.querySelectorAll('.reject-btn').forEach(button => button.addEventListener('click', handleRequestAction));
+                }
+            } catch (error) {
+                console.error("Error loading requests:", error);
+                requestsListEl.innerHTML = `<p class="text-center text-red-500 mt-4">রিকোয়েস্ট লোড করতে সমস্যা হয়েছে।</p>`;
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function handleRequestAction(event) {
+            const button = event.target;
+            const requestId = button.dataset.id;
+            const requestType = button.dataset.type;
+            const userId = button.dataset.userId;
+            const amount = parseFloat(button.dataset.amount);
+            const transactionRef = button.dataset.transactionRef;
+            const action = button.classList.contains('accept-btn') ? 'completed' : 'rejected';
+
+            showLoading(true);
+            try {
+                const requestDocRef = doc(db, `artifacts/${appId}/${requestType === 'add-money' ? 'add_money_requests' : 'money_transfer_requests'}`, requestId);
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
+
+                if (action === 'completed' && requestType === 'add-money') {
+                    // Add money to user's balance and update request status and user's transaction status
+                    await runTransaction(db, async (transaction) => {
+                        const userDoc = await transaction.get(userDocRef);
+                        const newBalance = (userDoc.data().balance || 0) + amount;
+                        transaction.update(userDocRef, { balance: newBalance });
+                        transaction.update(requestDocRef, { status: action });
+                        
+                        // Find the user's transaction and update its status
+                        const txDocRef = doc(db, `artifacts/${appId}/users/${userId}/transactions`, transactionRef);
+                        transaction.update(txDocRef, { status: action });
+                    });
+                    showMessage("অ্যাড মানি রিকোয়েস্ট গ্রহণ করা হয়েছে।");
+                } else if (action === 'completed' && requestType === 'transfer-money') {
+                     // Get user transaction reference
+                    const userTxCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/transactions`);
+                    const qTx = query(userTxCollectionRef, where("amount", "==", amount), where("status", "==", "pending"));
+                    const txDocs = await getDocs(qTx);
+                    const txDocRef = doc(userTxCollectionRef, txDocs.docs[0].id);
+                    // Just update status, money already deducted from sender
+                    await updateDoc(requestDocRef, { status: action });
+                    await updateDoc(txDocRef, { status: action });
+                    showMessage("ট্রান্সফার রিকোয়েস্ট গ্রহণ করা হয়েছে।");
+                } else if (action === 'rejected' && requestType === 'add-money') {
+                    // Update user's transaction status
+                    const txDocRef = doc(db, `artifacts/${appId}/users/${userId}/transactions`, transactionRef);
+                    await updateDoc(txDocRef, { status: action });
+                    
+                    await deleteDoc(requestDocRef); // Delete the admin request
+                    showMessage("অ্যাড মানি রিকোয়েস্ট বাতিল করা হয়েছে।");
+                } else if (action === 'rejected' && requestType === 'transfer-money') {
+                    // Refund money to sender and update request status
+                    await runTransaction(db, async (transaction) => {
+                        const userDoc = await transaction.get(userDocRef);
+                        const newBalance = (userDoc.data().balance || 0) + amount;
+                        transaction.update(userDocRef, { balance: newBalance });
+                        
+                        // Update status in the statement
+                        const txCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/transactions`);
+                        const qTx = query(txCollectionRef, where("type", "==", "transfer"), where("amount", "==", amount), where("status", "==", "pending"));
+                        const txDocs = await getDocs(qTx);
+                        if (!txDocs.empty) {
+                            const txDocRef = doc(txCollectionRef, txDocs.docs[0].id);
+                            transaction.update(txDocRef, { status: "rejected" });
+                        }
+                    });
+                    await deleteDoc(requestDocRef);
+                    showMessage("ট্রান্সফার রিকোয়েস্ট বাতিল করা হয়েছে এবং টাকা ফেরত দেওয়া হয়েছে।");
+                }
+                
+                // Refresh the list
+                loadRequests(requestType, 'pending');
+
+            } catch (error) {
+                console.error("Error handling request action:", error);
+                showMessage("রিকোয়েস্ট কার্যক্রমে সমস্যা হয়েছে।");
+            } finally {
+                showLoading(false);
+            }
+        }
 
         // Handle user logout
         async function handleLogout() {
@@ -1248,13 +1475,19 @@
                     unsubscribeFromProfile();
                 }
                 unsubscribeFromProfile = onSnapshot(profileDocRef, (docSnap) => {
-                    const profileData = docSnap.exists() ? docSnap.data() : { name: user.displayName || 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    const profileData = docSnap.exists() ? docSnap.data() : { name: user.displayName || 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00, isAdmin: false };
+                    isAdmin = profileData.isAdmin;
+                    if (isAdmin) {
+                         adminSettingsBtn.classList.remove('hidden');
+                    } else {
+                         adminSettingsBtn.classList.add('hidden');
+                    }
                     renderDashboard(profileData);
                     renderSidebar(profileData);
                 }, (error) => {
                     console.error("Error fetching real-time profile data:", error);
                     showMessage("প্রোফাইল ডেটা লোড করতে সমস্যা হয়েছে।");
-                    const profileData = { name: user.displayName || 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
+                    const profileData = { name: user.displayName || 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00, isAdmin: false };
                     renderDashboard(profileData);
                     renderSidebar(profileData);
                 });
@@ -1263,7 +1496,7 @@
                 if (unsubscribeFromRequests) {
                     unsubscribeFromRequests();
                 }
-                const qRequests = query(collection(db, `artifacts/${appId}/add_money_requests`), where("userId", "==", user.uid));
+                const qRequests = query(collection(db, `artifacts/${appId}/add_money_requests`), where("userId", "==", user.uid), where("status", "==", "pending"));
                 unsubscribeFromRequests = onSnapshot(qRequests, async (querySnapshot) => {
                     const requests = [];
                     querySnapshot.forEach(doc => {
@@ -1278,28 +1511,7 @@
                         } else {
                             for (const request of requests) {
                                 if (request.status === 'completed') {
-                                    showMessage(`৳ ${request.amount} আপনার অ্যাকাউন্টে যোগ হয়েছে!`);
-                                    try {
-                                        await runTransaction(db, async (transaction) => {
-                                            const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
-                                            const userDoc = await transaction.get(userDocRef);
-                                            const newBalance = (userDoc.data().balance || 0) + request.amount;
-                                            transaction.update(userDocRef, { balance: newBalance });
-                                            // Add transaction record
-                                            const txCollectionRef = collection(db, `artifacts/${appId}/users/${user.uid}/transactions`);
-                                            await addDoc(txCollectionRef, {
-                                                type: 'deposit',
-                                                amount: request.amount,
-                                                description: `Deposit via ${request.method.toUpperCase()}`,
-                                                timestamp: serverTimestamp(),
-                                                status: 'completed'
-                                            });
-                                        });
-                                        await deleteDoc(doc(db, `artifacts/${appId}/add_money_requests`, request.id));
-                                    } catch (e) {
-                                        console.error("Transaction failed or document deletion failed:", e);
-                                        showMessage("ব্যালেন্স আপডেটে সমস্যা হয়েছে।");
-                                    }
+                                    // This block will be handled by the admin action
                                 } else {
                                     const requestEl = document.createElement('div');
                                     requestEl.className = 'p-3 bg-white rounded-lg shadow-sm flex items-center justify-between';
@@ -1336,37 +1548,9 @@
                     if (requestsListEl) {
                         for (const transfer of transfers) {
                             if (transfer.status === 'completed') {
-                                showMessage(`৳ ${transfer.amount} আপনার অ্যাকাউন্ট থেকে ট্রান্সফার হয়েছে!`);
-                                try {
-                                    await deleteDoc(doc(db, `artifacts/${appId}/money_transfer_requests`, transfer.id));
-                                    // Status will be handled by the statement listener
-                                } catch (e) {
-                                    console.error("Document deletion failed:", e);
-                                    showMessage("রিকোয়েস্ট মুছে ফেলতে সমস্যা হয়েছে।");
-                                }
+                                // Handled by admin
                             } else if (transfer.status === 'rejected') {
-                                showMessage(`৳ ${transfer.amount} ট্রান্সফার রিকোয়েস্ট বাতিল করা হয়েছে। টাকা আপনার অ্যাকাউন্টে ফেরত পাঠানো হয়েছে।`);
-                                try {
-                                    await runTransaction(db, async (transaction) => {
-                                        const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
-                                        const userDoc = await transaction.get(userDocRef);
-                                        const newBalance = (userDoc.data().balance || 0) + transfer.amount;
-                                        transaction.update(userDocRef, { balance: newBalance });
-                                        // Update status in the statement
-                                        const txCollectionRef = collection(db, `artifacts/${appId}/users/${user.uid}/transactions`);
-                                        const qTx = query(txCollectionRef, where("type", "==", "transfer"), where("amount", "==", transfer.amount), where("status", "==", "pending"));
-                                        const txDocs = await getDocs(qTx);
-                                        if (!txDocs.empty) {
-                                            const txDocRef = doc(txCollectionRef, txDocs.docs[0].id);
-                                            transaction.update(txDocRef, { status: "rejected" });
-                                        }
-
-                                    });
-                                    await deleteDoc(doc(db, `artifacts/${appId}/money_transfer_requests`, transfer.id));
-                                } catch (e) {
-                                    console.error("Transaction failed or document deletion failed:", e);
-                                    showMessage("ব্যালেন্স ফেরত দিতে সমস্যা হয়েছে।");
-                                }
+                                // Handled by admin
                             } else {
                                 const transferEl = document.createElement('div');
                                 transferEl.className = 'p-3 bg-white rounded-lg shadow-sm flex items-center justify-between';
@@ -1440,6 +1624,14 @@
                 menuSidebar.classList.remove('open');
             });
         });
+        
+        // Add event listener for the admin settings button
+        adminSettingsBtn.addEventListener('click', async () => {
+            if (isAdmin) {
+                renderAdminDashboard();
+            }
+        });
+
 
         // Add event listener for the new Home button
         if (homeBtn) {
