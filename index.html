@@ -693,7 +693,7 @@
                 <div class="flex flex-col h-full p-4 space-y-6">
                     <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">${method.charAt(0).toUpperCase() + method.slice(1)} অ্যাকাউন্টে ট্রান্সফার</h2>
                     <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                        <p class="text-sm text-blue-700">ফ্রি ট্রান্সফার লিমিট: <span class="font-bold">৳ ${reserveLimit.toFixed(2)}</span></p>
+                        <p class="text-sm text-blue-700">পার্সেন্টেজ চার্জ ফ্রি লিমিট: <span class="font-bold">৳ ${reserveLimit.toFixed(2)}</span></p>
                     </div>
                     <p class="text-sm text-gray-600">দয়া করে প্রাপকের **ব্যক্তিগত** ${method} নম্বর দিন।</p>
                     <form id="transfer-form" class="w-full space-y-4">
@@ -714,22 +714,21 @@
             const reserveLimit = appConfig.reserve[method] || 0;
             const chargeConfig = appConfig.charges.transfer;
             
-            // Calculate how much reserve is being used and what amount is chargeable
             const reserveUsed = Math.min(amount, reserveLimit);
             const chargeableAmount = Math.max(0, amount - reserveLimit);
             
-            let charge = 0;
-            let chargeBreakdownText = ''; // To show the calculation details
-
+            const fixedCharge = chargeConfig.fixed; // Fixed charge is always applied
+            let percentageCharge = 0;
+            
             if (chargeableAmount > 0) {
-                const percentageCharge = chargeableAmount * chargeConfig.percentage / 100;
-                const fixedCharge = chargeConfig.fixed;
-                charge = percentageCharge + fixedCharge;
-                // Create a text to show the breakdown, e.g., (৳500.00 x 1.5% + ৳10.00)
-                chargeBreakdownText = ` <span class="text-xs text-gray-500">(${chargeableAmount.toFixed(2)} x ${chargeConfig.percentage}% + ${fixedCharge.toFixed(2)})</span>`;
+                percentageCharge = chargeableAmount * chargeConfig.percentage / 100;
             }
             
-            const totalDeduction = amount + charge;
+            const totalCharge = fixedCharge + percentageCharge;
+            const totalDeduction = amount + totalCharge;
+            
+            // Text for charge breakdown
+            const chargeBreakdownText = `<span class="text-xs text-gray-500">(নির্দিষ্ট ৳${fixedCharge.toFixed(2)} + পার্সেন্টেজ ৳${percentageCharge.toFixed(2)})</span>`;
             
             mainContent.innerHTML = `
                 <div class="flex flex-col h-full p-4 space-y-6">
@@ -738,10 +737,10 @@
                         <p class="flex justify-between">প্রাপক (${method}): <span class="font-semibold text-gray-800">${recipientNumber}</span></p>
                         <p class="flex justify-between">মোট পরিমাণ: <span class="font-semibold text-gray-800">৳ ${amount.toFixed(2)}</span></p>
                         <hr class="my-1">
-                        <p class="flex justify-between text-green-600">রিজার্ভ ব্যবহার: <span class="font-semibold">- ৳ ${reserveUsed.toFixed(2)}</span></p>
-                        <p class="flex justify-between text-orange-600">চার্জযোগ্য পরিমাণ: <span class="font-semibold">৳ ${chargeableAmount.toFixed(2)}</span></p>
-                        <p class="flex justify-between">চার্জ:${chargeBreakdownText}</p>
-                        <p class="font-semibold text-gray-800 text-right">৳ ${charge.toFixed(2)}</p>
+                        <p class="flex justify-between text-green-600">পার্সেন্টেজ চার্জ ফ্রি: <span class="font-semibold">- ৳ ${reserveUsed.toFixed(2)}</span></p>
+                        <p class="flex justify-between text-orange-600">পার্সেন্টেজ চার্জের পরিমাণ: <span class="font-semibold">৳ ${chargeableAmount.toFixed(2)}</span></p>
+                        <p class="flex justify-between">মোট চার্জ:${chargeBreakdownText}</p>
+                        <p class="font-semibold text-gray-800 text-right">৳ ${totalCharge.toFixed(2)}</p>
                         <hr class="my-1 border-gray-300">
                         <p class="flex justify-between font-bold text-base">সর্বমোট কর্তন: <span class="text-gray-800">৳ ${totalDeduction.toFixed(2)}</span></p>
                     </div>
@@ -757,7 +756,6 @@
             });
             document.getElementById('back-to-transfer-form-btn').addEventListener('click', () => showMoneyTransferForm(method));
         }
-
 
         // Handle the money transfer transaction
         async function handleMoneyTransfer(event) {
@@ -799,12 +797,14 @@
             const reserveUsed = Math.min(amount, reserveLimit);
             const chargeableAmount = Math.max(0, amount - reserveLimit);
             
-            let charge = 0;
+            const fixedCharge = chargeConfig.fixed; // Fixed charge is always applied
+            let percentageCharge = 0;
             if (chargeableAmount > 0) {
-                charge = (chargeableAmount * chargeConfig.percentage / 100) + chargeConfig.fixed;
+                percentageCharge = chargeableAmount * chargeConfig.percentage / 100;
             }
             
-            const totalDeduction = amount + charge;
+            const totalCharge = fixedCharge + percentageCharge;
+            const totalDeduction = amount + totalCharge;
 
             if ((userData.balance || 0) < totalDeduction) {
                 showMessage("অপর্যাপ্ত ব্যালেন্স।");
@@ -837,7 +837,7 @@
                     method: method,
                     status: 'pending',
                     timestamp: serverTimestamp(),
-                    charge: charge,
+                    charge: totalCharge,
                     reserveUsed: reserveUsed
                 });
                 
@@ -845,7 +845,7 @@
                 await addDoc(collection(db, `artifacts/${appId}/users/${currentUser.uid}/transactions`), {
                     type: 'transfer',
                     amount: amount,
-                    charge: charge,
+                    charge: totalCharge,
                     description: `Transfer to ${method.toUpperCase()} (${recipientNumber})`,
                     status: 'pending',
                     timestamp: serverTimestamp(),
@@ -1840,9 +1840,11 @@
                     const userTxCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/transactions`);
                     const qTx = query(userTxCollectionRef, where("amount", "==", amount), where("status", "==", "pending"));
                     const txDocs = await getDocs(qTx);
-                    const txDocRef = doc(userTxCollectionRef, txDocs.docs[0].id);
-                    await updateDoc(requestDocRef, { status: action });
-                    await updateDoc(txDocRef, { status: action });
+                    if (!txDocs.empty) {
+                        const txDocRef = doc(userTxCollectionRef, txDocs.docs[0].id);
+                        await updateDoc(requestDocRef, { status: action });
+                        await updateDoc(txDocRef, { status: action });
+                    }
                     showMessage("ট্রান্সফার রিকোয়েস্ট গ্রহণ করা হয়েছে।");
                 } else if (action === 'rejected' && requestType === 'add-money') {
                     const txDocRef = doc(db, `artifacts/${appId}/users/${userId}/transactions`, transactionRef);
