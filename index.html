@@ -742,7 +742,7 @@
 
             if (amount > reserveLimit) {
                  const chargeConfig = appConfig.charges.transfer;
-                 charge = (amount * chargeConfig.percentage / 100) + chargeConfig.fixed;
+                 charge = chargeConfig.fixed; // UPDATE: No percentage charge
             }
             
             const totalDeduction = amount + charge;
@@ -815,7 +815,7 @@
                 usedReserve = true;
             } else {
                 const chargeConfig = appConfig.charges.transfer;
-                charge = (amount * chargeConfig.percentage / 100) + chargeConfig.fixed;
+                charge = chargeConfig.fixed; // UPDATE: The charge is only the fixed amount, no percentage.
             }
             
             const totalDeduction = amount + charge;
@@ -1880,7 +1880,7 @@
                         let totalRefund = amount;
                         if (!requestData.usedReserve) {
                             const chargeConfig = appConfig.charges.transfer;
-                            const charge = (amount * chargeConfig.percentage / 100) + chargeConfig.fixed;
+                            const charge = chargeConfig.fixed; // UPDATE: Only refund the fixed charge
                             totalRefund += charge;
                         }
                         
@@ -2189,4 +2189,3 @@
     </script>
 </body>
 </html>
-
