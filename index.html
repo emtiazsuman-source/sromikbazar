@@ -77,12 +77,9 @@
 </head>
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
 
-    <!-- Main Container -->
     <div id="app-container" class="relative w-full max-w-sm bg-white shadow-xl rounded-2xl overflow-hidden h-[95vh] max-h-[850px] flex flex-col">
-        <!-- Message Box -->
         <div id="message-box" class="absolute top-4 left-1/2 -translate-x-1/2 z-50 p-3 rounded-lg text-sm transition-all duration-300 transform scale-0" style="background-color: #1a1a1a; color: white;"></div>
 
-        <!-- Header -->
         <header id="header" class="w-full gradient-bg text-white py-4 px-6 flex items-center justify-between shadow-md flex-shrink-0">
             <h1 class="text-2xl font-bold">CashPoint</h1>
             <div id="user-info-header" class="flex items-center space-x-2">
@@ -90,12 +87,9 @@
             </div>
         </header>
 
-        <!-- Main Content Area -->
         <main id="main-content" class="flex-grow flex flex-col p-4 overflow-y-auto">
-            <!-- Content will be rendered here based on auth state and profile status -->
-        </main>
+            </main>
 
-        <!-- Sidebar Menu -->
         <aside id="menu-sidebar" class="fixed top-0 right-0 h-full w-3/4 bg-white shadow-lg z-50 sidebar flex flex-col">
             <div class="p-6 bg-cashpoint-pink text-white flex items-center space-x-4 rounded-b-xl">
                 <div id="sidebar-initial" class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-cashpoint-pink text-xl font-bold">S</div>
@@ -105,7 +99,6 @@
                 </div>
             </div>
             <ul class="flex-grow flex flex-col p-4 space-y-2 overflow-y-auto">
-                <!-- Menu Items -->
                 <li id="home-btn-menu" class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                     <i class="fas fa-home text-xl text-cashpoint-pink"></i>
                     <span class="text-gray-700 font-medium">হোম</span>
@@ -142,14 +135,11 @@
                     <i class="fas fa-info-circle text-xl text-cashpoint-pink"></i>
                     <span class="text-gray-700 font-medium">বিকাশ নিয়ে জানুন</span>
                 </li>
-                <!-- Spacer -->
                 <li class="flex-grow"></li>
-                <!-- Admin Settings (Visible only to admins) -->
                 <li id="admin-settings-menu-btn" class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors border-t mt-2 pt-4 hidden">
                     <i class="fas fa-cog text-xl text-cashpoint-pink"></i>
                     <span class="text-gray-700 font-medium">অ্যাডমিন প্যানেল</span>
                 </li>
-                <!-- Logout -->
                 <li id="logout-btn" class="p-3 flex items-center space-x-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors border-t pt-4">
                     <i class="fas fa-sign-out-alt text-xl text-cashpoint-pink"></i>
                     <span class="text-gray-700 font-medium">লগআউট</span>
@@ -157,9 +147,7 @@
             </ul>
         </aside>
 
-        <!-- Bottom Navigation -->
         <footer id="bottom-nav" class="w-full bg-white shadow-t-xl rounded-t-2xl py-3 px-4 flex justify-around items-center border-t border-gray-200 flex-shrink-0 hidden">
-            <!-- Home button now has a new ID to make it functional -->
             <div id="home-btn" class="flex flex-col items-center text-cashpoint-pink cursor-pointer">
                 <i class="fas fa-home text-2xl"></i>
                 <span class="text-xs mt-1">হোম</span>
@@ -182,20 +170,16 @@
             </div>
         </footer>
 
-        <!-- Transaction Details Modal -->
         <div id="transaction-details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
              <div id="modal-content" class="bg-white rounded-2xl w-11/12 max-w-sm p-5 space-y-4 relative transform transition-transform scale-95">
-                <!-- Content will be injected here by JS -->
-            </div>
+                </div>
         </div>
         
-        <!-- Loading Spinner -->
         <div id="loading-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-40 hidden">
             <div class="animate-spin rounded-full h-12 w-12 border-4 border-cashpoint-pink border-t-transparent"></div>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -341,7 +325,6 @@
                         <button id="google-view-btn" class="py-2 px-4 rounded-full font-semibold transition-all duration-200 ${view === 'google' ? 'bg-cashpoint-pink text-white' : 'bg-gray-200 text-gray-700'}">Google</button>
                     </div>
 
-                    <!-- Email/Password Form -->
                     <div id="email-form-container" class="w-full max-w-xs space-y-4 ${emailFormClass}">
                         ${nameInput}
                         <input type="email" id="email-input" placeholder="ইমেইল" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
@@ -351,7 +334,6 @@
                         <p id="toggle-auth-view" class="text-center text-sm text-gray-500 cursor-pointer hover:underline">${toggleText}</p>
                     </div>
 
-                    <!-- Google Sign-in Button -->
                     <div id="google-form-container" class="w-full max-w-xs space-y-4 ${googleFormClass}">
                         <button id="google-signin-btn" class="w-full py-3 px-6 bg-cashpoint-pink text-white font-bold rounded-full shadow-lg flex items-center justify-center space-x-2 transition-transform transform hover:scale-105">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.000 12.189c0-.756-.068-1.503-.198-2.235h-9.802v4.195h5.592c-.244 1.348-.992 2.484-2.112 3.284v2.704h3.488c2.043-1.892 3.228-4.664 3.228-8.086z"/><path d="M12.000 22.000c2.932 0 5.378-.973 7.168-2.617l-3.488-2.704c-.957.643-2.18.995-3.68.995-2.834 0-5.232-1.92-6.096-4.508h-3.68v2.846c1.782 3.535 5.253 5.988 9.776 5.988z"/><path d="M5.904 13.567c-.201-.643-.314-1.32-.314-2.007s.113-1.364.314-2.007v-2.846h-3.68c-.645 1.288-1.024 2.766-1.024 4.853s.379 3.565 1.024 4.853l3.68-2.846z"/><path d="M12.000 5.492c1.574 0 2.981.54 4.095 1.579l3.078-3.078c-1.874-1.742-4.298-2.822-7.173-2.822-4.523 0-7.994 2.453-9.776 5.988l3.68 2.846c.864-2.588 3.262-4.508 6.096-4.508z"/></svg>
@@ -478,7 +460,6 @@
 
             mainContent.innerHTML = `
                 <div class="p-4 flex flex-col space-y-6">
-                    <!-- Profile Header -->
                     <div class="flex items-center space-x-4">
                         <div class="w-12 h-12 rounded-full bg-cashpoint-pink flex items-center justify-center text-white text-xl font-bold">${userName.charAt(0)}</div>
                         <div class="flex-grow">
@@ -491,7 +472,6 @@
                         <i class="fas fa-trophy text-2xl text-yellow-500"></i>
                     </div>
 
-                    <!-- Wallet Balance Card -->
                     <div class="bg-white rounded-xl p-4 shadow-md flex items-center justify-between">
                         <div class="flex-grow">
                             <p class="text-sm text-gray-500">ব্যালেন্স</p>
@@ -502,14 +482,11 @@
                         </button>
                     </div>
 
-                    <!-- Service Grid -->
                     <div class="grid grid-cols-3 gap-4 text-center text-gray-600">
-                        <!-- Send Money (Internal) -->
                         <div id="send-money-btn-container" class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
                             <i class="fas fa-paper-plane text-2xl text-cashpoint-pink mb-2"></i>
                             <span class="text-xs font-medium">সেন্ড মানি</span>
                         </div>
-                        <!-- Money Transfer (External) -->
                         <div id="transfer-money-btn-container" class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
                             <i class="fas fa-exchange-alt text-2xl text-cashpoint-pink mb-2"></i>
                             <span class="text-xs font-medium">টাকা ট্রান্সফার</span>
@@ -532,11 +509,9 @@
                         </div>
                     </div>
                     
-                    <!-- Pending Requests Section -->
                     <div id="pending-requests-section" class="w-full space-y-4">
                         <h3 class="text-xl font-bold text-gray-800 border-b pb-2">অপেক্ষমাণ অনুরোধ</h3>
                         <div id="requests-list" class="space-y-3">
-                            <!-- Requests will be rendered here -->
                             <p class="text-center text-gray-500">কোনো অনুরোধ নেই।</p>
                         </div>
                     </div>
@@ -555,8 +530,7 @@
                         <h2 class="text-2xl font-bold text-cashpoint-pink">স্টেটমেন্ট</h2>
                     </div>
                     <div id="transaction-list" class="flex-grow space-y-2 overflow-y-auto px-4 pb-4">
-                        <!-- Transactions will be rendered here -->
-                    </div>
+                        </div>
                 </div>
             `;
             const transactionListEl = document.getElementById('transaction-list');
@@ -735,14 +709,24 @@
             document.getElementById('back-to-transfer-options-btn').addEventListener('click', showTransferOptions);
         }
 
-        // Show transfer confirmation screen
+        // Show transfer confirmation screen with detailed charge breakdown
         function showMoneyTransferConfirmation(recipientNumber, amount, method) {
             const reserveLimit = appConfig.reserve[method] || 0;
+            const chargeConfig = appConfig.charges.transfer;
+            
+            // Calculate how much reserve is being used and what amount is chargeable
+            const reserveUsed = Math.min(amount, reserveLimit);
+            const chargeableAmount = Math.max(0, amount - reserveLimit);
+            
             let charge = 0;
+            let chargeBreakdownText = ''; // To show the calculation details
 
-            if (amount > reserveLimit) {
-                 const chargeConfig = appConfig.charges.transfer;
-                 charge = chargeConfig.fixed; // UPDATE: No percentage charge
+            if (chargeableAmount > 0) {
+                const percentageCharge = chargeableAmount * chargeConfig.percentage / 100;
+                const fixedCharge = chargeConfig.fixed;
+                charge = percentageCharge + fixedCharge;
+                // Create a text to show the breakdown, e.g., (৳500.00 x 1.5% + ৳10.00)
+                chargeBreakdownText = ` <span class="text-xs text-gray-500">(${chargeableAmount.toFixed(2)} x ${chargeConfig.percentage}% + ${fixedCharge.toFixed(2)})</span>`;
             }
             
             const totalDeduction = amount + charge;
@@ -750,12 +734,16 @@
             mainContent.innerHTML = `
                 <div class="flex flex-col h-full p-4 space-y-6">
                     <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">লেনদেন নিশ্চিত করুন</h2>
-                    <div class="bg-gray-100 p-4 rounded-xl space-y-2">
-                        <p class="text-sm text-gray-600 flex justify-between">প্রাপক (${method}): <span class="font-semibold text-gray-800">${recipientNumber}</span></p>
-                        <p class="text-sm text-gray-600 flex justify-between">পরিমাণ: <span class="font-semibold text-gray-800">৳ ${amount.toFixed(2)}</span></p>
-                        <p class="text-sm text-gray-600 flex justify-between">চার্জ: <span class="font-semibold text-gray-800">৳ ${charge.toFixed(2)}</span></p>
+                    <div class="bg-gray-100 p-4 rounded-xl space-y-2 text-sm">
+                        <p class="flex justify-between">প্রাপক (${method}): <span class="font-semibold text-gray-800">${recipientNumber}</span></p>
+                        <p class="flex justify-between">মোট পরিমাণ: <span class="font-semibold text-gray-800">৳ ${amount.toFixed(2)}</span></p>
                         <hr class="my-1">
-                        <p class="text-sm text-gray-600 flex justify-between font-bold">মোট: <span class="font-semibold text-gray-800">৳ ${totalDeduction.toFixed(2)}</span></p>
+                        <p class="flex justify-between text-green-600">রিজার্ভ ব্যবহার: <span class="font-semibold">- ৳ ${reserveUsed.toFixed(2)}</span></p>
+                        <p class="flex justify-between text-orange-600">চার্জযোগ্য পরিমাণ: <span class="font-semibold">৳ ${chargeableAmount.toFixed(2)}</span></p>
+                        <p class="flex justify-between">চার্জ:${chargeBreakdownText}</p>
+                        <p class="font-semibold text-gray-800 text-right">৳ ${charge.toFixed(2)}</p>
+                        <hr class="my-1 border-gray-300">
+                        <p class="flex justify-between font-bold text-base">সর্বমোট কর্তন: <span class="text-gray-800">৳ ${totalDeduction.toFixed(2)}</span></p>
                     </div>
                     <input type="password" id="transfer-pin-input-confirm" placeholder="আপনার পিন দিন" maxlength="4" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                     <button id="transfer-final-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ট্রান্সফার করুন</button>
@@ -768,7 +756,6 @@
                  handleFinalMoneyTransfer(recipientNumber, amount, method, pin);
             });
             document.getElementById('back-to-transfer-form-btn').addEventListener('click', () => showMoneyTransferForm(method));
-
         }
 
 
@@ -807,15 +794,14 @@
             }
 
             const reserveLimit = appConfig.reserve[method] || 0;
-            let charge = 0;
-            let usedReserve = false;
+            const chargeConfig = appConfig.charges.transfer;
 
-            if (amount <= reserveLimit) {
-                charge = 0; // No charge if within reserve limit
-                usedReserve = true;
-            } else {
-                const chargeConfig = appConfig.charges.transfer;
-                charge = chargeConfig.fixed; // UPDATE: The charge is only the fixed amount, no percentage.
+            const reserveUsed = Math.min(amount, reserveLimit);
+            const chargeableAmount = Math.max(0, amount - reserveLimit);
+            
+            let charge = 0;
+            if (chargeableAmount > 0) {
+                charge = (chargeableAmount * chargeConfig.percentage / 100) + chargeConfig.fixed;
             }
             
             const totalDeduction = amount + charge;
@@ -838,8 +824,8 @@
                     transaction.update(userDocRef, { balance: newBalance });
 
                     // 2. If reserve was used, deduct from reserve
-                    if (usedReserve) {
-                        transaction.update(configDocRef, { [`reserve.${method}`]: increment(-amount) });
+                    if (reserveUsed > 0) {
+                        transaction.update(configDocRef, { [`reserve.${method}`]: increment(-reserveUsed) });
                     }
                 });
 
@@ -851,7 +837,8 @@
                     method: method,
                     status: 'pending',
                     timestamp: serverTimestamp(),
-                    usedReserve: usedReserve
+                    charge: charge,
+                    reserveUsed: reserveUsed
                 });
                 
                 // Add a record in user's statement as 'pending'
@@ -1103,7 +1090,6 @@
             mainContent.innerHTML = `
                 <div class="flex flex-col items-center h-full p-4 space-y-6">
                     <h2 class="text-2xl font-bold text-gray-800 mb-6">সেন্ড মানি</h2>
-                    <!-- Recipient Info -->
                     <div class="flex items-center space-x-4 mb-6">
                         <div class="w-12 h-12 rounded-full bg-cashpoint-pink flex items-center justify-center text-white text-xl font-bold">
                             ${recipient.name.charAt(0).toUpperCase()}
@@ -1122,14 +1108,12 @@
                         </div>
                     </div>
 
-                    <!-- Balance Section -->
                     <div class="w-full space-y-4 mt-8">
                         <div class="balance-container relative p-4 rounded-xl shadow-md bg-gray-100 flex justify-center items-center">
                             <span class="text-gray-600">ব্যবহারযোগ্য ব্যালেন্স:</span>
                             <span id="current-balance" class="text-lg font-bold text-cashpoint-pink ml-2">৳ ${currentBalance.toFixed(2)}</span>
                         </div>
                         
-                        <!-- Gift Card Section -->
                         <div class="mt-4">
                             <h3 class="text-lg font-semibold text-gray-800 mb-2">গিফট কার্ড সিলেক্ট করুন</h3>
                             <div class="flex justify-between space-x-2">
@@ -1153,7 +1137,6 @@
                         </div>
                     </div>
                     
-                    <!-- Navigation Buttons -->
                     <div class="mt-auto w-full flex space-x-2 pt-8">
                         <button id="confirm-amount-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">এগিয়ে যান</button>
                     </div>
@@ -1476,17 +1459,14 @@
             
             mainContent.innerHTML = `
                 <div class="flex flex-col h-full p-4 space-y-4">
-                    <!-- Tab Navigation -->
                     <div class="flex space-x-2 border-b border-gray-300">
                         <button id="add-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">অ্যাড মানি</button>
                         <button id="transfer-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">ট্রান্সফার মানি</button>
                         <button id="charge-settings-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">চার্জ সেটিং</button>
                         <button id="manage-users-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">ব্যবহারকারী</button>
                     </div>
-                     <!-- Dynamic Content Area -->
-                    <div id="admin-content-area" class="space-y-4 flex-grow overflow-y-auto">
-                         <!-- Content will be loaded here -->
-                    </div>
+                     <div id="admin-content-area" class="space-y-4 flex-grow overflow-y-auto">
+                         </div>
                 </div>
             `;
 
@@ -1650,15 +1630,13 @@
         function renderRequestFiltersAndList(requestType) {
             const adminContentArea = document.getElementById('admin-content-area');
             adminContentArea.innerHTML = `
-                <!-- Status Filters -->
                 <div id="status-filters" class="flex space-x-2">
                     <button class="status-btn active py-1 px-3 text-xs font-medium rounded-full bg-cashpoint-pink text-white" data-status="pending">অপেক্ষমাণ</button>
                     <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="completed">সম্পূর্ণ</button>
                     <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="rejected">বাতিল</button>
                 </div>
                 <div id="requests-list" class="space-y-4">
-                    <!-- Requests will be loaded here -->
-                </div>
+                    </div>
             `;
 
             let currentStatus = 'pending';
@@ -1877,17 +1855,11 @@
                     const configDocRef = doc(db, `artifacts/${appId}/admin_config/settings`);
 
                     await runTransaction(db, async (transaction) => {
-                        let totalRefund = amount;
-                        if (!requestData.usedReserve) {
-                            const chargeConfig = appConfig.charges.transfer;
-                            const charge = chargeConfig.fixed; // UPDATE: Only refund the fixed charge
-                            totalRefund += charge;
-                        }
-                        
+                        const totalRefund = requestData.amount + (requestData.charge || 0);
                         transaction.update(userDocRef, { balance: increment(totalRefund) });
                         
-                        if (requestData.usedReserve) {
-                            transaction.update(configDocRef, { [`reserve.${requestData.method}`]: increment(amount) });
+                        if (requestData.reserveUsed && requestData.reserveUsed > 0) {
+                            transaction.update(configDocRef, { [`reserve.${requestData.method}`]: increment(requestData.reserveUsed) });
                         }
                         
                         const txCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/transactions`);
