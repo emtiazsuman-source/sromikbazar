@@ -721,7 +721,7 @@
             document.getElementById('back-to-transfer-options-btn').addEventListener('click', showTransferOptions);
         }
 
-        // Show transfer confirmation screen with detailed charge breakdown
+        // Show transfer confirmation screen with detailed charge breakdown - UPDATED FUNCTION
         function showMoneyTransferConfirmation(recipientNumber, amount, method) {
             const reserveLimit = appConfig.reserve[method] || 0;
             const chargeConfig = appConfig.charges.transfer;
@@ -739,8 +739,8 @@
             const totalCharge = fixedCharge + percentageCharge;
             const totalDeduction = amount + totalCharge;
             
-            // Text for charge breakdown
-            const chargeBreakdownText = `<span class="text-xs text-gray-500">(নির্দিষ্ট ৳${fixedCharge.toFixed(2)} + পার্সেন্টেজ ৳${percentageCharge.toFixed(2)})</span>`;
+            // Text format for charge breakdown as per user request
+            const chargeBreakdownText = `<span class="text-xs text-gray-500">(${chargeConfig.percentage}% ৳${percentageCharge.toFixed(2)} + ৳${fixedCharge.toFixed(2)})</span>`;
             
             mainContent.innerHTML = `
                 <div class="flex flex-col h-full p-4 space-y-6">
@@ -749,10 +749,9 @@
                         <p class="flex justify-between">প্রাপক (${method}): <span class="font-semibold text-gray-800">${recipientNumber}</span></p>
                         <p class="flex justify-between">মোট পরিমাণ: <span class="font-semibold text-gray-800">৳ ${amount.toFixed(2)}</span></p>
                         <hr class="my-1">
-                        <p class="flex justify-between text-green-600">পার্সেন্টেজ চার্জ ফ্রি: <span class="font-semibold">- ৳ ${reserveUsed.toFixed(2)}</span></p>
-                        <p class="flex justify-between text-orange-600">পার্সেন্টেজ চার্জের পরিমাণ: <span class="font-semibold">৳ ${chargeableAmount.toFixed(2)}</span></p>
-                        <p class="flex justify-between">মোট চার্জ:${chargeBreakdownText}</p>
-                        <p class="font-semibold text-gray-800 text-right">৳ ${totalCharge.toFixed(2)}</p>
+                        <p class="flex justify-between text-green-600">চার্জ ফ্রি: <span class="font-semibold">- ৳ ${reserveUsed.toFixed(2)}</span></p>
+                        <p class="flex justify-between text-orange-600">চার্জের পরিমাণ (${chargeConfig.percentage}%): <span class="font-semibold">৳ ${chargeableAmount.toFixed(2)}</span></p>
+                        <p class="flex justify-between">মোট চার্জ: <span class="font-semibold text-gray-800">${chargeBreakdownText} ৳ ${totalCharge.toFixed(2)}</span></p>
                         <hr class="my-1 border-gray-300">
                         <p class="flex justify-between font-bold text-base">সর্বমোট কর্তন: <span class="text-gray-800">৳ ${totalDeduction.toFixed(2)}</span></p>
                     </div>
@@ -2126,4 +2125,4 @@
         }
     </script>
 </body>
-</html>
+    </html>
