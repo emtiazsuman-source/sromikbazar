@@ -725,7 +725,6 @@
                     <form id="transfer-form" class="w-full space-y-4">
                         <input type="tel" id="recipient-number-input" placeholder="প্রাপকের ${method} নম্বর" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <input type="number" id="transfer-amount-input" placeholder="টাকার পরিমাণ" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
-                        <input type="password" id="transfer-pin-input" placeholder="আপনার পিন দিন" maxlength="4" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <input type="hidden" id="transfer-method-input" value="${method}">
                         <button type="submit" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ট্রান্সফার নিশ্চিত করুন</button>
                     </form>
@@ -736,16 +735,62 @@
             document.getElementById('back-to-transfer-options-btn').addEventListener('click', showTransferOptions);
         }
 
+        // Show transfer confirmation screen
+        function showMoneyTransferConfirmation(recipientNumber, amount, method) {
+            const reserveLimit = appConfig.reserve[method] || 0;
+            let charge = 0;
+
+            if (amount > reserveLimit) {
+                 const chargeConfig = appConfig.charges.transfer;
+                 charge = (amount * chargeConfig.percentage / 100) + chargeConfig.fixed;
+            }
+            
+            const totalDeduction = amount + charge;
+            
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full p-4 space-y-6">
+                    <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">লেনদেন নিশ্চিত করুন</h2>
+                    <div class="bg-gray-100 p-4 rounded-xl space-y-2">
+                        <p class="text-sm text-gray-600 flex justify-between">প্রাপক (${method}): <span class="font-semibold text-gray-800">${recipientNumber}</span></p>
+                        <p class="text-sm text-gray-600 flex justify-between">পরিমাণ: <span class="font-semibold text-gray-800">৳ ${amount.toFixed(2)}</span></p>
+                        <p class="text-sm text-gray-600 flex justify-between">চার্জ: <span class="font-semibold text-gray-800">৳ ${charge.toFixed(2)}</span></p>
+                        <hr class="my-1">
+                        <p class="text-sm text-gray-600 flex justify-between font-bold">মোট: <span class="font-semibold text-gray-800">৳ ${totalDeduction.toFixed(2)}</span></p>
+                    </div>
+                    <input type="password" id="transfer-pin-input-confirm" placeholder="আপনার পিন দিন" maxlength="4" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                    <button id="transfer-final-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ট্রান্সফার করুন</button>
+                    <button id="back-to-transfer-form-btn" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
+                </div>
+            `;
+            
+            document.getElementById('transfer-final-btn').addEventListener('click', () => {
+                 const pin = document.getElementById('transfer-pin-input-confirm').value;
+                 handleFinalMoneyTransfer(recipientNumber, amount, method, pin);
+            });
+            document.getElementById('back-to-transfer-form-btn').addEventListener('click', () => showMoneyTransferForm(method));
+
+        }
+
+
         // Handle the money transfer transaction
         async function handleMoneyTransfer(event) {
             event.preventDefault();
             const recipientNumber = document.getElementById('recipient-number-input').value.trim();
             const amount = parseFloat(document.getElementById('transfer-amount-input').value);
-            const pin = document.getElementById('transfer-pin-input').value;
             const method = document.getElementById('transfer-method-input').value;
 
-            if (!recipientNumber || isNaN(amount) || amount <= 0 || pin.length !== 4) {
+            if (!recipientNumber || isNaN(amount) || amount <= 0) {
                 showMessage("দয়া করে সব তথ্য সঠিকভাবে পূরণ করুন।");
+                return;
+            }
+            
+            // Go to confirmation screen instead of direct transaction
+            showMoneyTransferConfirmation(recipientNumber, amount, method);
+        }
+
+        async function handleFinalMoneyTransfer(recipientNumber, amount, method, pin) {
+            if (pin.length !== 4) {
+                showMessage("দয়া করে ৪-সংখ্যার সঠিক পিন দিন।");
                 return;
             }
 
@@ -2144,7 +2189,4 @@
     </script>
 </body>
 </html>
-
-
-
 
