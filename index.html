@@ -1428,7 +1428,7 @@
             const mobile = document.getElementById('mobile').value;
             const pin = document.getElementById('pin').value;
 
-            if (pin.length !== 4) {
+            if (!pin || pin.length !== 4) {
                 showMessage("পিন ৪-সংখ্যার হতে হবে।");
                 return;
             }
@@ -1453,10 +1453,9 @@
                     return;
                 }
                 
-                // Now save all profile data to the main user document
                 const docRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                 const pinHash = hashPin(pin);
-                // BUG FIX: Removed balance: 0.00 from here to prevent resetting balance on profile update.
+                // BUG FIX: Removed balance from this object to prevent it from being reset to 0.
                 await setDoc(docRef, { name, dob, mobile, pinHash, email: currentUser.email }, { merge: true });
                 showMessage("প্রোফাইল সফলভাবে সংরক্ষণ করা হয়েছে!");
             } catch (error) {
@@ -1469,7 +1468,6 @@
         
         // Render the Admin Dashboard
         function renderAdminDashboard() {
-            // Set header for admin view
             const headerH1 = document.querySelector('#header h1');
             if(headerH1) headerH1.textContent = 'Admin Panel';
              const userInfoHeader = document.getElementById('user-info-header');
@@ -1481,7 +1479,6 @@
                         <button id="add-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">অ্যাড মানি</button>
                         <button id="transfer-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">ট্রান্সফার মানি</button>
                         <button id="charge-settings-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">সেটিংস</button>
-                        <button id="manage-users-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">ব্যবহারকারী</button>
                     </div>
                      <div id="admin-content-area" class="space-y-4 flex-grow overflow-y-auto">
                          </div>
@@ -1493,13 +1490,11 @@
             const addMoneyTab = document.getElementById('add-money-tab');
             const transferMoneyTab = document.getElementById('transfer-money-tab');
             const chargeSettingsTab = document.getElementById('charge-settings-tab');
-            const manageUsersTab = document.getElementById('manage-users-tab');
             
             const setActiveTab = (tab) => {
                 addMoneyTab.classList.remove('add-money-active');
                 transferMoneyTab.classList.remove('transfer-money-active');
                 chargeSettingsTab.classList.remove('add-money-active');
-                manageUsersTab.classList.remove('add-money-active');
                 if(tab) tab.classList.add('add-money-active');
             };
             
@@ -1508,8 +1503,6 @@
                      renderRequestFiltersAndList(tabName);
                 } else if (tabName === 'charge-settings') {
                      renderChargeSettingsForm();
-                } else if (tabName === 'manage-users') {
-                    renderManageUsers();
                 }
             };
 
@@ -1528,120 +1521,10 @@
                 setActiveTab(chargeSettingsTab);
                 loadTabContent(currentTab);
             });
-            manageUsersTab.addEventListener('click', () => {
-                currentTab = 'manage-users';
-                setActiveTab(manageUsersTab);
-                loadTabContent(currentTab);
-            });
 
             // Load initial tab
             setActiveTab(addMoneyTab);
             loadTabContent(currentTab);
-        }
-
-        // Render Manage Users Tab Content
-        function renderManageUsers() {
-            const adminContentArea = document.getElementById('admin-content-area');
-            adminContentArea.innerHTML = `
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-700">ব্যবহারকারী খুঁজুন</h3>
-                    <div class="flex space-x-2">
-                        <input type="text" id="user-search-input" placeholder="ইমেইল, মোবাইল বা ইউজার আইডি" class="w-full p-2 border border-gray-300 rounded-md">
-                        <button id="user-search-btn" class="px-4 py-2 bg-cashpoint-pink text-white rounded-md">খুঁজুন</button>
-                    </div>
-                    <div id="user-search-results" class="space-y-2"></div>
-                </div>
-            `;
-            document.getElementById('user-search-btn').addEventListener('click', handleUserSearch);
-        }
-
-        async function handleUserSearch() {
-            const searchTerm = document.getElementById('user-search-input').value.trim();
-            const resultsContainer = document.getElementById('user-search-results');
-            if (!searchTerm) {
-                resultsContainer.innerHTML = '<p class="text-red-500">অনুগ্রহ করে খোঁজার জন্য কিছু লিখুন।</p>';
-                return;
-            }
-            showLoading(true);
-            resultsContainer.innerHTML = '';
-
-            try {
-                const usersCollectionRef = collection(db, `artifacts/${appId}/users/`);
-                
-                const qEmail = query(usersCollectionRef, where("email", "==", searchTerm));
-                const qMobile = query(usersCollectionRef, where("mobile", "==", searchTerm));
-                
-                const [emailSnapshot, mobileSnapshot] = await Promise.all([getDocs(qEmail), getDocs(qMobile)]);
-                
-                const users = new Map();
-                emailSnapshot.forEach(doc => users.set(doc.id, { id: doc.id, ...doc.data() }));
-                mobileSnapshot.forEach(doc => users.set(doc.id, { id: doc.id, ...doc.data() }));
-
-                // Try to get by UID as well
-                try {
-                    const docRef = doc(db, `artifacts/${appId}/users/${searchTerm}`);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        users.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-                    }
-                } catch (e) { /* Ignore if search term is not a valid UID */ }
-
-                if (users.size === 0) {
-                    resultsContainer.innerHTML = '<p class="text-center text-gray-500">কোনো ব্যবহারকারী খুঁজে পাওয়া যায়নি।</p>';
-                } else {
-                    users.forEach(user => {
-                        const userEl = document.createElement('div');
-                        userEl.className = 'p-3 bg-white rounded-lg shadow-sm flex items-center justify-between';
-                        userEl.innerHTML = `
-                            <div>
-                                <p class="font-semibold">${user.name}</p>
-                                <p class="text-sm text-gray-500">${user.email}</p>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-medium">${user.isAdmin ? 'Admin' : 'User'}</span>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                  <input type="checkbox" value="" class="sr-only peer" ${user.isAdmin ? 'checked' : ''} data-userid="${user.id}">
-                                  <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-pink-300 dark:peer-focus:ring-pink-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-cashpoint-pink"></div>
-                                </label>
-                            </div>
-                        `;
-                        resultsContainer.appendChild(userEl);
-                    });
-                    
-                    document.querySelectorAll('#user-search-results input[type="checkbox"]').forEach(toggle => {
-                        toggle.addEventListener('change', (event) => {
-                            const userId = event.target.dataset.userid;
-                            const newStatus = event.target.checked;
-                            handleAdminStatusChange(userId, newStatus);
-                        });
-                    });
-                }
-            } catch (error) {
-                console.error("Error searching for user:", error);
-                resultsContainer.innerHTML = '<p class="text-red-500">ব্যবহারকারী খোঁজার সময় একটি ত্রুটি হয়েছে।</p>';
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        async function handleAdminStatusChange(userId, newStatus) {
-            if (userId === currentUser.uid) {
-                showMessage("আপনি নিজের স্ট্যাটাস পরিবর্তন করতে পারবেন না।");
-                handleUserSearch(); // Re-render to reset toggle
-                return;
-            }
-            showLoading(true);
-            try {
-                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
-                await updateDoc(userDocRef, { isAdmin: newStatus });
-                showMessage(`ব্যবহারকারীর স্ট্যাটাস সফলভাবে ${newStatus ? 'অ্যাডমিন করা হয়েছে' : 'অ্যাডমিন থেকে সরানো হয়েছে'}।`);
-            } catch (error) {
-                console.error("Error updating admin status:", error);
-                showMessage("স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে।");
-                 handleUserSearch(); // Re-render to reset toggle
-            } finally {
-                showLoading(false);
-            }
         }
 
         // Renders filters and list container for money requests
