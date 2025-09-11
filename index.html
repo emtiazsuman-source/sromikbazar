@@ -532,22 +532,26 @@
                     }
 
                     if (tx.status === 'pending') {
-                        statusText = `<span class="text-xs font-semibold text-orange-500 ml-2">অপেক্ষমাণ</span>`;
+                        statusText = `<span class="text-xs font-semibold text-orange-500">অপেক্ষমাণ</span>`;
                     } else if (tx.status === 'rejected') {
-                        statusText = `<span class="text-xs font-semibold text-red-500 ml-2">বাতিল</span>`;
+                        statusText = `<span class="text-xs font-semibold text-red-500">বাতিল</span>`;
                     } else if (tx.status === 'completed' || tx.status === 'received') {
-                         statusText = `<span class="text-xs font-semibold text-green-500 ml-2">সম্পূর্ণ</span>`;
+                         statusText = `<span class="text-xs font-semibold text-green-500">সম্পূর্ণ</span>`;
                     }
 
                     txEl.innerHTML = `
-                        <div class="flex items-center space-x-3">
-                            <i class="fas ${icon} text-lg ${color}"></i>
-                            <div class="flex-grow">
-                                <p class="font-semibold text-gray-800">${tx.description}</p>
-                                <p class="text-xs text-gray-500">${tx.timestamp ? new Date(tx.timestamp.toDate()).toLocaleString() : 'N/A'}</p>
+                        <div class="flex items-center space-x-4">
+                            <i class="fas ${icon} text-2xl ${color} flex-shrink-0"></i>
+                            <div class="flex-grow min-w-0">
+                                <p class="font-semibold text-gray-800 truncate">${tx.description}</p>
+                                <p class="text-xs text-gray-500">${tx.timestamp ? new Date(tx.timestamp.toDate()).toLocaleString('en-US') : 'N/A'}</p>
                             </div>
-                            <span class="font-bold text-lg ${color}">${amountPrefix} ${tx.amount.toFixed(2)}</span>
-                            ${statusText}
+                            <div class="text-center" style="width: 65px;">
+                                ${statusText}
+                            </div>
+                            <div class="text-right" style="width: 110px;">
+                                <span class="font-bold text-lg ${color}">${amountPrefix} ${tx.amount.toFixed(2)}</span>
+                            </div>
                         </div>
                     `;
                     transactionListEl.appendChild(txEl);
