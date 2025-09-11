@@ -64,11 +64,17 @@
         .transfer-money-card {
             border-left: 4px solid #3B82F6;
         }
-        /* Hide scrollbar for main content */
-        #main-content::-webkit-scrollbar {
+        /* Hide scrollbar for all relevant areas */
+        #main-content::-webkit-scrollbar,
+        #transaction-list::-webkit-scrollbar,
+        #admin-content-area::-webkit-scrollbar,
+        #menu-sidebar ul::-webkit-scrollbar {
             display: none;
         }
-        #main-content {
+        #main-content,
+        #transaction-list,
+        #admin-content-area,
+        #menu-sidebar ul {
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
         }
@@ -211,12 +217,6 @@
         let recipientData = {}; // To store recipient info for the transaction
         let isAdmin = false;
 
-        // Admin numbers for manual transactions
-        const adminNumbers = {
-            bkash: '01XXXXXXXXX',
-            nagad: '01XXXXXXXXX'
-        };
-
         // Transaction Charges Configuration - Will be loaded from Firestore
         let appConfig = {
             charges: {
@@ -226,6 +226,10 @@
             reserve: {
                 bkash: 0,
                 nagad: 0
+            },
+            paymentNumbers: {
+                bkash: '01XXXXXXXXX',
+                nagad: '01YYYYYYYYY'
             }
         };
 
@@ -543,6 +547,13 @@
                     
                     let icon, color, amountPrefix, title = '';
                     let firstChar = 'T';
+                    let statusText, statusColor;
+
+                    switch (tx.status) {
+                        case 'pending': statusText = 'অপেক্ষমাণ'; statusColor = 'text-orange-500'; break;
+                        case 'rejected': statusText = 'ব্যর্থ'; statusColor = 'text-red-500'; break;
+                        default: statusText = 'সফল'; statusColor = 'text-green-500'; break;
+                    }
 
                     switch (tx.type) {
                         case 'deposit':
@@ -584,6 +595,7 @@
                         <div class="flex-grow">
                             <p class="font-semibold text-gray-800">${title}</p>
                             <p class="text-xs text-gray-500">TrxID: ${tx.transactionId || 'N/A'}</p>
+                             <p class="text-xs font-semibold ${statusColor}">${statusText}</p>
                         </div>
                         <div class="text-right">
                             <p class="font-bold ${color}">${amountPrefix}${tx.amount.toFixed(2)}</p>
@@ -611,7 +623,7 @@
             let statusText, statusColor;
             switch(tx.status) {
                 case 'pending': statusText = 'অপেক্ষমাণ'; statusColor = 'text-orange-500'; break;
-                case 'rejected': statusText = 'বাতিল'; statusColor = 'text-red-500'; break;
+                case 'rejected': statusText = 'ব্যর্থ'; statusColor = 'text-red-500'; break;
                 default: statusText = 'সম্পূর্ণ'; statusColor = 'text-green-500'; break;
             }
 
@@ -797,7 +809,7 @@
             const reserveUsed = Math.min(amount, reserveLimit);
             const chargeableAmount = Math.max(0, amount - reserveLimit);
             
-            const fixedCharge = chargeConfig.fixed; // Fixed charge is always applied
+            const fixedCharge = chargeConfig.fixed; 
             let percentageCharge = 0;
             if (chargeableAmount > 0) {
                 percentageCharge = chargeableAmount * chargeConfig.percentage / 100;
@@ -897,7 +909,7 @@
         
         // Render transaction form with admin's number
         function showTransactionForm(method) {
-            const adminNumber = adminNumbers[method];
+            const adminNumber = appConfig.paymentNumbers[method] || 'নম্বর পাওয়া যায়নি';
             mainContent.innerHTML = `
                 <div class="flex flex-col h-full p-4 space-y-6">
                     <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">${method.charAt(0).toUpperCase() + method.slice(1)} দিয়ে টাকা যোগ করুন</h2>
@@ -1462,7 +1474,7 @@
                     <div class="flex space-x-2 border-b border-gray-300">
                         <button id="add-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">অ্যাড মানি</button>
                         <button id="transfer-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">ট্রান্সফার মানি</button>
-                        <button id="charge-settings-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">চার্জ সেটিং</button>
+                        <button id="charge-settings-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">সেটিংস</button>
                         <button id="manage-users-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">ব্যবহারকারী</button>
                     </div>
                      <div id="admin-content-area" class="space-y-4 flex-grow overflow-y-auto">
@@ -1635,7 +1647,7 @@
                     <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="completed">সম্পূর্ণ</button>
                     <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="rejected">বাতিল</button>
                 </div>
-                <div id="requests-list" class="space-y-4">
+                <div id="requests-list" class="space-y-3">
                     </div>
             `;
 
@@ -1665,6 +1677,20 @@
 
             adminContentArea.innerHTML = `
                 <form id="charge-form" class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-2">অ্যাড মানি নম্বর</h3>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label for="admin-bkash-number" class="block text-sm font-medium text-gray-600">বিকাশ নম্বর</label>
+                                <input type="tel" id="admin-bkash-number" value="${currentConfig.paymentNumbers.bkash || ''}" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div>
+                                <label for="admin-nagad-number" class="block text-sm font-medium text-gray-600">নগদ নম্বর</label>
+                                <input type="tel" id="admin-nagad-number" value="${currentConfig.paymentNumbers.nagad || ''}" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                        </div>
+                    </div>
+                
                     <div>
                         <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-2">সেন্ড মানি চার্জ</h3>
                         <div class="grid grid-cols-2 gap-4">
@@ -1733,6 +1759,10 @@
                 reserve: {
                     bkash: parseFloat(document.getElementById('reserve-bkash').value) || 0,
                     nagad: parseFloat(document.getElementById('reserve-nagad').value) || 0
+                },
+                paymentNumbers: {
+                    bkash: document.getElementById('admin-bkash-number').value.trim() || '',
+                    nagad: document.getElementById('admin-nagad-number').value.trim() || ''
                 }
             };
             
@@ -1756,7 +1786,7 @@
                 showLoading(false);
                 return; 
             }
-            requestsListEl.innerHTML = '';
+            requestsListEl.innerHTML = '<div class="text-center p-5"><div class="animate-spin rounded-full h-8 w-8 border-4 border-cashpoint-pink border-t-transparent mx-auto"></div></div>';
             
             const collectionName = type === 'add-money' ? 'add_money_requests' : 'money_transfer_requests';
             const q = query(collection(db, `artifacts/${appId}/${collectionName}`), where('status', '==', status));
@@ -1764,40 +1794,75 @@
             try {
                 const querySnapshot = await getDocs(q);
                 const requests = [];
-                querySnapshot.forEach(doc => {
-                    requests.push({ id: doc.id, ...doc.data() });
-                });
+                for (const docSnap of querySnapshot.docs) {
+                    const requestData = docSnap.data();
+                    const userDocRef = doc(db, `artifacts/${appId}/users`, requestData.userId);
+                    const userDoc = await getDoc(userDocRef);
+                    const userName = userDoc.exists() ? userDoc.data().name : 'Unknown User';
+                    requests.push({ id: docSnap.id, ...requestData, userName });
+                }
+
+                requestsListEl.innerHTML = ''; // Clear spinner
 
                 if (requests.length === 0) {
                     requestsListEl.innerHTML = `<p class="text-center text-gray-500 mt-4">এই মুহূর্তে কোনো ${status === 'pending' ? 'অপেক্ষমাণ' : status === 'completed' ? 'সম্পূর্ণ' : 'বাতিল'} রিকোয়েস্ট নেই।</p>`;
                 } else {
                     requests.forEach(request => {
                         const requestEl = document.createElement('div');
-                        requestEl.className = `p-4 bg-white rounded-lg shadow-sm flex flex-col space-y-2 ${type === 'add-money' ? 'add-money-card' : 'transfer-money-card'}`;
+                        requestEl.className = `bg-white rounded-lg shadow-sm overflow-hidden`;
                         
+                        let title, icon, color;
+                        if (type === 'add-money') {
+                            title = 'অ্যাড মানি রিকোয়েস্ট';
+                            icon = 'fa-plus';
+                            color = 'text-cashpoint-pink';
+                        } else {
+                            title = 'ট্রান্সফার রিকোয়েস্ট';
+                            icon = 'fa-exchange-alt';
+                            color = 'text-blue-500';
+                        }
+
                         let details = '';
                         if (type === 'add-money') {
-                            details = `<p class="text-sm">ট্রানজেকশন আইডি: <span class="font-mono">${request.txId}</span></p>`;
+                            details = `<p class="text-xs text-gray-500">TxID: <span class="font-mono">${request.txId}</span></p>`;
                         } else {
-                            details = `<p class="text-sm">প্রাপকের নম্বর: <span class="font-mono">${request.recipientNumber}</span></p>`;
+                            details = `<p class="text-xs text-gray-500">To: <span class="font-mono">${request.recipientNumber}</span> (${request.method})</p>`;
                         }
                         
                         let buttons = '';
                         if (status === 'pending') {
                             buttons = `
-                                <div class="flex space-x-2 mt-2">
-                                    <button class="accept-btn bg-green-500 text-white px-3 py-1 text-xs rounded-full" data-id="${request.id}" data-type="${type}" data-user-id="${request.userId}" data-amount="${request.amount}" data-transaction-ref="${request.transactionRef || ''}">গ্রহণ</button>
-                                    <button class="reject-btn bg-red-500 text-white px-3 py-1 text-xs rounded-full" data-id="${request.id}" data-type="${type}" data-user-id="${request.userId}" data-amount="${request.amount}" data-transaction-ref="${request.transactionRef || ''}">বাতিল</button>
+                                <div class="flex space-x-2 pt-3">
+                                    <button class="accept-btn flex-1 bg-green-500 text-white px-3 py-1.5 text-xs font-bold rounded-md hover:bg-green-600" data-id="${request.id}" data-type="${type}" data-user-id="${request.userId}" data-amount="${request.amount}" data-transaction-ref="${request.transactionRef || ''}">গ্রহণ</button>
+                                    <button class="reject-btn flex-1 bg-red-500 text-white px-3 py-1.5 text-xs font-bold rounded-md hover:bg-red-600" data-id="${request.id}" data-type="${type}" data-user-id="${request.userId}" data-amount="${request.amount}" data-transaction-ref="${request.transactionRef || ''}">বাতিল</button>
                                 </div>
                             `;
                         }
 
+                        const date = request.timestamp ? request.timestamp.toDate() : new Date();
+                        const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+
                         requestEl.innerHTML = `
-                            <p class="font-bold text-gray-800">পরিমাণ: ৳ ${request.amount.toFixed(2)}</p>
-                            <p class="text-sm">ইউজার আইডি: <span class="font-mono break-all">${request.userId}</span></p>
-                            ${details}
-                            <p class="text-xs text-gray-500">সময়: ${request.timestamp ? new Date(request.timestamp.toDate()).toLocaleString() : 'N/A'}</p>
-                            ${buttons}
+                           <div class="p-3">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center ${color} font-bold mr-4">
+                                        <i class="fas ${icon}"></i>
+                                    </div>
+                                    <div class="flex-grow">
+                                        <p class="font-semibold text-gray-800">${request.userName}</p>
+                                        <p class="text-xs text-gray-500">${title}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-bold text-gray-800 text-lg">৳ ${request.amount.toFixed(2)}</p>
+                                        <p class="text-xs text-gray-400">${time}, ${dateStr}</p>
+                                    </div>
+                                </div>
+                                <div class="mt-2 text-center border-t border-gray-100 pt-2">
+                                     ${details}
+                                </div>
+                           </div>
+                           ${buttons ? `<div class="bg-gray-50 p-2">${buttons}</div>` : ''}
                         `;
                         requestsListEl.appendChild(requestEl);
                     });
@@ -1838,12 +1903,14 @@
                     showMessage("অ্যাড মানি রিকোয়েস্ট গ্রহণ করা হয়েছে।");
                 } else if (action === 'completed' && requestType === 'transfer-money') {
                     const userTxCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/transactions`);
-                    const qTx = query(userTxCollectionRef, where("amount", "==", amount), where("status", "==", "pending"));
+                    const qTx = query(userTxCollectionRef, where("type", "==", "transfer"), where("amount", "==", amount), where("status", "==", "pending"));
                     const txDocs = await getDocs(qTx);
                     if (!txDocs.empty) {
                         const txDocRef = doc(userTxCollectionRef, txDocs.docs[0].id);
                         await updateDoc(requestDocRef, { status: action });
                         await updateDoc(txDocRef, { status: action });
+                    } else {
+                         await updateDoc(requestDocRef, { status: action });
                     }
                     showMessage("ট্রান্সফার রিকোয়েস্ট গ্রহণ করা হয়েছে।");
                 } else if (action === 'rejected' && requestType === 'add-money') {
@@ -1876,7 +1943,7 @@
                     showMessage("ট্রান্সফার রিকোয়েস্ট বাতিল করা হয়েছে এবং টাকা ফেরত দেওয়া হয়েছে।");
                 }
                 
-                renderRequestFiltersAndList(requestType);
+                loadRequests(requestType, 'pending');
 
             } catch (error) {
                 console.error("Error handling request action:", error);
@@ -2060,17 +2127,20 @@
             const configDocRef = doc(db, `artifacts/${appId}/admin_config/settings`);
             
             const docSnap = await getDoc(configDocRef);
-            if (!docSnap.exists()) {
-                try {
+            if (docSnap.exists()) {
+                 appConfig = { ...appConfig, ...docSnap.data() };
+            } else {
+                 try {
                     await setDoc(configDocRef, appConfig); // Create with default values
                 } catch (error) {
                     console.error("Failed to create default app config:", error);
                 }
             }
 
+
             onSnapshot(configDocRef, (doc) => {
                 if (doc.exists()) {
-                    appConfig = doc.data();
+                    appConfig = { ...appConfig, ...doc.data() };
                 }
             }, (error) => {
                 console.error("Error listening for config updates:", error);
