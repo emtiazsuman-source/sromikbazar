@@ -923,6 +923,7 @@
                     <form id="add-money-form" class="w-full space-y-4">
                         <input type="number" id="amount-input" placeholder="টাকার পরিমাণ" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <input type="text" id="txid-input" placeholder="ট্রানজেকশন আইডি" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                        <input type="tel" id="sender-number-input" placeholder="আপনার ${method} নম্বরটি দিন" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <input type="hidden" id="method-input" value="${method}">
                         <button type="submit" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">রিকোয়েস্ট জমা দিন</button>
                     </form>
@@ -938,10 +939,12 @@
             event.preventDefault();
             const amount = parseFloat(document.getElementById('amount-input').value);
             const txId = document.getElementById('txid-input').value.trim();
+            const senderNumber = document.getElementById('sender-number-input').value.trim();
+            const recipientAdminNumber = document.getElementById('admin-number').textContent.trim();
             const method = document.getElementById('method-input').value;
 
-            if (isNaN(amount) || amount <= 0 || !txId) {
-                showMessage("দয়া করে সঠিক পরিমাণ এবং ট্রানজেকশন আইডি দিন।");
+            if (isNaN(amount) || amount <= 0 || !txId || !senderNumber) {
+                showMessage("দয়া করে সব তথ্য সঠিকভাবে পূরণ করুন।");
                 return;
             }
 
@@ -966,6 +969,8 @@
                     amount: amount,
                     txId: txId,
                     method: method,
+                    senderNumber: senderNumber,
+                    recipientAdminNumber: recipientAdminNumber,
                     status: 'pending',
                     timestamp: serverTimestamp(),
                     transactionRef: newTxDocRef.id // Store the transaction document ID
@@ -1451,7 +1456,8 @@
                 // Now save all profile data to the main user document
                 const docRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                 const pinHash = hashPin(pin);
-                await setDoc(docRef, { name, dob, mobile, pinHash, balance: 0.00, email: currentUser.email }, { merge: true });
+                // BUG FIX: Removed balance: 0.00 from here to prevent resetting balance on profile update.
+                await setDoc(docRef, { name, dob, mobile, pinHash, email: currentUser.email }, { merge: true });
                 showMessage("প্রোফাইল সফলভাবে সংরক্ষণ করা হয়েছে!");
             } catch (error) {
                 console.error("Error saving profile:", error);
@@ -1768,7 +1774,7 @@
             
             try {
                 const configDocRef = doc(db, `artifacts/${appId}/admin_config/settings`);
-                await setDoc(configDocRef, newConfig);
+                await setDoc(configDocRef, newConfig, { merge: true });
                 showMessage("সেটিংস সফলভাবে আপডেট হয়েছে।");
             } catch (error) {
                 console.error("Error saving settings:", error);
@@ -1824,7 +1830,12 @@
 
                         let details = '';
                         if (type === 'add-money') {
-                            details = `<p class="text-xs text-gray-500">TxID: <span class="font-mono">${request.txId}</span></p>`;
+                            details = `
+                                <div class="text-xs text-gray-600 space-y-1 text-left">
+                                    <p><span>ব্যবহারকারীর নম্বর:</span> <span class="font-mono font-semibold">${request.senderNumber}</span></p>
+                                    <p><span>অ্যাডমিন নম্বর:</span> <span class="font-mono font-semibold">${request.recipientAdminNumber}</span></p>
+                                    <p><span>ট্রানজেকশন আইডি:</span> <span class="font-mono font-semibold">${request.txId}</span></p>
+                                </div>`;
                         } else {
                             details = `<p class="text-xs text-gray-500">To: <span class="font-mono">${request.recipientNumber}</span> (${request.method})</p>`;
                         }
@@ -1858,7 +1869,7 @@
                                         <p class="text-xs text-gray-400">${time}, ${dateStr}</p>
                                     </div>
                                 </div>
-                                <div class="mt-2 text-center border-t border-gray-100 pt-2">
+                                <div class="mt-2 border-t border-gray-100 pt-2">
                                      ${details}
                                 </div>
                            </div>
