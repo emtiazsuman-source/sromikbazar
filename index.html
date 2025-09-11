@@ -175,6 +175,13 @@
                 <span class="text-xs mt-1">মেনু</span>
             </div>
         </footer>
+
+        <!-- Transaction Details Modal -->
+        <div id="transaction-details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+             <div id="modal-content" class="bg-white rounded-2xl w-11/12 max-w-sm p-5 space-y-4 relative transform transition-transform scale-95">
+                <!-- Content will be injected here by JS -->
+            </div>
+        </div>
         
         <!-- Loading Spinner -->
         <div id="loading-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-40 hidden">
@@ -220,6 +227,13 @@
             nagad: '01XXXXXXXXX'
         };
 
+        // Transaction Charges Configuration - Will be loaded from Firestore
+        let transactionCharges = {
+            send: { percentage: 2, fixed: 5 }, // Default values
+            transfer: { percentage: 1.5, fixed: 10 } // Default values
+        };
+
+
         // UI Elements
         const mainContent = document.getElementById('main-content');
         const headerUserName = document.getElementById('header-user-name');
@@ -241,9 +255,12 @@
 
         // Function to generate a unique transaction ID
         function generateTransactionId() {
-            const timestamp = Date.now();
-            const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
-            return `CP${timestamp}${randomPart}`;
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 9; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
         }
         
         // Function to show a message
@@ -409,8 +426,8 @@
                     <form id="profile-form" class="w-full space-y-4">
                         <input type="text" id="name" placeholder="আপনার নাম" value="${name}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <input type="date" id="dob-input" placeholder="আপনার জন্মতারিখ" value="${dob}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
-                        <input type="text" id="mobile" placeholder="আপনার মোবাইল নম্বর" value="${mobile}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
-                        <input type="password" id="pin" placeholder="৪-সংখ্যার পিন দিন" maxlength="4" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                        <input type="tel" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" id="mobile" placeholder="আপনার মোবাইল নম্বর" value="${mobile}" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
+                        <input type="password" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" id="pin" placeholder="৪-সংখ্যার পিন দিন" maxlength="4" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                         <button type="submit" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">প্রোফাইল সংরক্ষণ করুন</button>
                         <button id="back-to-dashboard-btn" type="button" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
                     </form>
@@ -512,77 +529,141 @@
         // Render the statement page
         function renderStatementPage(transactions) {
             mainContent.innerHTML = `
-                <div class="flex flex-col h-full p-4 space-y-6">
-                    <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">স্টেটমেন্ট</h2>
-                    <div id="transaction-list" class="space-y-4">
+                <div class="flex flex-col h-full p-0 space-y-4">
+                    <div class="px-4 pt-4">
+                        <h2 class="text-2xl font-bold text-cashpoint-pink">স্টেটমেন্ট</h2>
+                    </div>
+                    <div id="transaction-list" class="flex-grow space-y-2 overflow-y-auto px-4 pb-4">
                         <!-- Transactions will be rendered here -->
                     </div>
-                    <button id="back-to-dashboard-btn" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
                 </div>
             `;
             const transactionListEl = document.getElementById('transaction-list');
             if (transactions.length === 0) {
-                transactionListEl.innerHTML = '<p class="text-center text-gray-500">কোনো লেনদেন নেই।</p>';
+                transactionListEl.innerHTML = '<p class="text-center text-gray-500 pt-10">কোনো লেনদেন নেই।</p>';
             } else {
                 transactions.forEach(tx => {
                     const txEl = document.createElement('div');
-                    txEl.className = 'p-4 bg-white rounded-lg shadow-sm';
+                    txEl.className = 'flex items-center p-3 bg-white rounded-lg shadow-sm cursor-pointer hover:bg-gray-50';
                     
-                    let icon, color, amountPrefix, statusText = '';
-                    if (tx.type === 'deposit') {
-                        icon = 'fa-plus-circle';
-                        color = 'text-green-500';
-                        amountPrefix = '+ ৳';
-                    } else if (tx.type === 'send') {
-                        icon = 'fa-paper-plane';
-                        color = 'text-red-500';
-                        amountPrefix = '- ৳';
-                    } else if (tx.type === 'receive') {
-                        icon = 'fa-inbox';
-                        color = 'text-green-500';
-                        amountPrefix = '+ ৳';
-                    } else if (tx.type === 'transfer') {
-                        icon = 'fa-exchange-alt';
-                        color = 'text-red-500';
-                        amountPrefix = '- ৳';
-                    }
+                    let icon, color, amountPrefix, title = '';
+                    let firstChar = 'T';
 
-                    if (tx.status === 'pending') {
-                        statusText = `<span class="text-xs font-semibold text-orange-500">অপেক্ষমাণ</span>`;
-                    } else if (tx.status === 'rejected') {
-                        statusText = `<span class="text-xs font-semibold text-red-500">বাতিল</span>`;
-                    } else if (tx.status === 'completed' || tx.status === 'received') {
-                         statusText = `<span class="text-xs font-semibold text-green-500">সম্পূর্ণ</span>`;
+                    switch (tx.type) {
+                        case 'deposit':
+                            icon = 'fa-plus';
+                            color = 'text-green-500';
+                            amountPrefix = '+ ৳';
+                            title = 'অ্যাড মানি';
+                            firstChar = tx.description.charAt(0);
+                            break;
+                        case 'send':
+                            icon = 'fa-paper-plane';
+                            color = 'text-red-500';
+                            amountPrefix = '- ৳';
+                            title = 'সেন্ড মানি';
+                            firstChar = tx.description.split(" ")[2] ? tx.description.split(" ")[2].charAt(0) : 'S';
+                            break;
+                        case 'receive':
+                            icon = 'fa-inbox';
+                            color = 'text-green-500';
+                            amountPrefix = '+ ৳';
+                            title = 'রিসিভ মানি';
+                            firstChar = tx.description.split(" ")[2] ? tx.description.split(" ")[2].charAt(0) : 'R';
+                            break;
+                        case 'transfer':
+                             icon = 'fa-exchange-alt';
+                            color = 'text-red-500';
+                            amountPrefix = '- ৳';
+                            title = 'ট্রান্সফার';
+                            firstChar = 'T';
+                            break;
                     }
+                    
+                    const date = tx.timestamp ? tx.timestamp.toDate() : new Date();
+                    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                    const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
                     txEl.innerHTML = `
-                        <div class="flex items-center space-x-4">
-                            <i class="fas ${icon} text-2xl ${color} flex-shrink-0"></i>
-                            <div class="flex-grow min-w-0">
-                                <p class="font-semibold text-gray-800 truncate">${tx.description}</p>
-                                <p class="text-xs text-gray-500">${tx.timestamp ? new Date(tx.timestamp.toDate()).toLocaleString('en-US') : 'N/A'}</p>
-                                <p class="text-xs text-gray-400 font-mono">ID: ${tx.transactionId || 'N/A'}</p>
-                            </div>
-                            <div class="text-center" style="width: 65px;">
-                                ${statusText}
-                            </div>
-                            <div class="text-right" style="width: 110px;">
-                                <span class="font-bold text-lg ${color}">${amountPrefix} ${tx.amount.toFixed(2)}</span>
-                            </div>
+                        <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-cashpoint-pink font-bold mr-4">${firstChar.toUpperCase()}</div>
+                        <div class="flex-grow">
+                            <p class="font-semibold text-gray-800">${title}</p>
+                            <p class="text-xs text-gray-500">TrxID: ${tx.transactionId || 'N/A'}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold ${color}">${amountPrefix}${tx.amount.toFixed(2)}</p>
+                            <p class="text-xs text-gray-400">${time} ${dateStr}</p>
+                        </div>
+                        <div class="ml-3 text-gray-400">
+                             <i class="fas fa-chevron-right"></i>
                         </div>
                     `;
+                    txEl.addEventListener('click', () => showTransactionDetails(tx, title, amountPrefix, color));
                     transactionListEl.appendChild(txEl);
                 });
             }
-            document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
-                const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
-                onSnapshot(profileDocRef, (docSnap) => {
-                    const profileData = docSnap.exists() ? docSnap.data() : { name: 'ব্যবহারকারী', mobile: '', dob: '', balance: 0.00 };
-                    renderDashboard(profileData);
-                    renderSidebar(profileData);
-                });
+        }
+        
+        // Show transaction details in a modal
+        function showTransactionDetails(tx, title, amountPrefix, color) {
+            const modal = document.getElementById('transaction-details-modal');
+            const modalContent = document.getElementById('modal-content');
+
+            const date = tx.timestamp ? tx.timestamp.toDate() : new Date();
+            const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            let statusText, statusColor;
+            switch(tx.status) {
+                case 'pending': statusText = 'অপেক্ষমাণ'; statusColor = 'text-orange-500'; break;
+                case 'rejected': statusText = 'বাতিল'; statusColor = 'text-red-500'; break;
+                default: statusText = 'সম্পূর্ণ'; statusColor = 'text-green-500'; break;
+            }
+
+            modalContent.innerHTML = `
+                <div class="flex justify-between items-center pb-2 border-b">
+                    <h3 class="text-lg font-bold">${title}</h3>
+                    <p class="font-bold ${statusColor}">${statusText}</p>
+                </div>
+                <div class="flex justify-between items-center text-center">
+                    <p class="text-3xl font-bold ${color}">${amountPrefix}${tx.amount.toFixed(2)}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
+                    <p class="text-gray-500">বিস্তারিত:</p>
+                    <p class="text-right font-semibold">${tx.description}</p>
+                    
+                    <p class="text-gray-500">সময়:</p>
+                    <p class="text-right font-semibold">${time}, ${dateStr}</p>
+                    
+                    <p class="text-gray-500">চার্জ:</p>
+                    <p class="text-right font-semibold">৳ ${(tx.charge || 0).toFixed(2)}</p>
+                    
+                    <p class="text-gray-500">ট্রানজেকশন আইডি:</p>
+                    <p class="text-right font-semibold font-mono flex items-center justify-end">
+                        ${tx.transactionId || 'N/A'}
+                        <i class="fas fa-copy text-xs text-cashpoint-pink ml-2 cursor-pointer" onclick="copyToClipboard('${tx.transactionId}')"></i>
+                    </p>
+                </div>
+                 <button id="close-modal-btn" class="absolute top-1 right-2 text-gray-400 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            `;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => modalContent.classList.add('scale-100'), 10);
+
+            document.getElementById('close-modal-btn').addEventListener('click', () => {
+                modalContent.classList.remove('scale-100');
+                setTimeout(() => modal.classList.add('hidden'), 200);
             });
         }
+        
+        // Add event listener to close modal on backdrop click
+        document.getElementById('transaction-details-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'transaction-details-modal') {
+                const modalContent = document.getElementById('modal-content');
+                modalContent.classList.remove('scale-100');
+                setTimeout(() => e.target.classList.add('hidden'), 200);
+            }
+        });
         
         // Render money transfer options (Bkash / Nagad)
         function showTransferOptions() {
@@ -655,7 +736,11 @@
                 return;
             }
 
-            if ((userData.balance || 0) < amount) {
+            const chargeConfig = transactionCharges.transfer;
+            const charge = (amount * chargeConfig.percentage / 100) + chargeConfig.fixed;
+            const totalDeduction = amount + charge;
+
+            if ((userData.balance || 0) < totalDeduction) {
                 showMessage("অপর্যাপ্ত ব্যালেন্স।");
                 showLoading(false);
                 return;
@@ -667,7 +752,7 @@
                 await runTransaction(db, async (transaction) => {
                     const userDoc = await transaction.get(userDocRef);
                     const currentBalance = userDoc.data().balance || 0;
-                    const newBalance = currentBalance - amount;
+                    const newBalance = currentBalance - totalDeduction;
                     transaction.update(userDocRef, { balance: newBalance });
                 });
 
@@ -685,6 +770,7 @@
                 await addDoc(collection(db, `artifacts/${appId}/users/${currentUser.uid}/transactions`), {
                     type: 'transfer',
                     amount: amount,
+                    charge: charge,
                     description: `Transfer to ${method.toUpperCase()} (${recipientNumber})`,
                     status: 'pending',
                     timestamp: serverTimestamp(),
@@ -780,6 +866,7 @@
                 const newTxDocRef = await addDoc(txCollectionRef, {
                     type: 'deposit',
                     amount: amount,
+                    charge: 0,
                     description: `Deposit via ${method.toUpperCase()}`,
                     status: 'pending',
                     timestamp: serverTimestamp(),
@@ -997,12 +1084,19 @@
         
         // Step 4: Render the final confirmation form with PIN input
         function renderSendMoneyConfirmation(recipient, amount) {
+            const chargeConfig = transactionCharges.send;
+            const charge = (amount * chargeConfig.percentage / 100) + chargeConfig.fixed;
+            const total = amount + charge;
+
             mainContent.innerHTML = `
                 <div class="flex flex-col h-full p-4 space-y-6">
                     <h2 class="text-2xl font-bold text-cashpoint-pink mb-4">লেনদেন নিশ্চিত করুন</h2>
                     <div class="bg-gray-100 p-4 rounded-xl space-y-2">
-                        <p class="text-sm text-gray-600">প্রাপক: <span class="font-semibold text-gray-800">${recipient.name}</span></p>
-                        <p class="text-sm text-gray-600">পরিমাণ: <span class="font-semibold text-gray-800">৳ ${amount.toFixed(2)}</span></p>
+                        <p class="text-sm text-gray-600 flex justify-between">প্রাপক: <span class="font-semibold text-gray-800">${recipient.name}</span></p>
+                        <p class="text-sm text-gray-600 flex justify-between">পরিমাণ: <span class="font-semibold text-gray-800">৳ ${amount.toFixed(2)}</span></p>
+                        <p class="text-sm text-gray-600 flex justify-between">চার্জ: <span class="font-semibold text-gray-800">৳ ${charge.toFixed(2)}</span></p>
+                        <hr class="my-1">
+                        <p class="text-sm text-gray-600 flex justify-between font-bold">মোট: <span class="font-semibold text-gray-800">৳ ${total.toFixed(2)}</span></p>
                     </div>
                     <input type="password" id="pin-input" placeholder="আপনার পিন দিন" maxlength="4" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cashpoint-pink">
                     <button id="send-money-final-btn" class="w-full py-3 bg-cashpoint-pink text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">টাকা পাঠান</button>
@@ -1037,6 +1131,10 @@
             const senderDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
             const recipientDocRef = doc(db, `artifacts/${appId}/users/${recipient.uid}`);
             const transactionId = generateTransactionId();
+            
+            const chargeConfig = transactionCharges.send;
+            const charge = (amount * chargeConfig.percentage / 100) + chargeConfig.fixed;
+            const totalDeduction = amount + charge;
 
             try {
                 await runTransaction(db, async (transaction) => {
@@ -1053,14 +1151,14 @@
                         throw new Error("ভুল পিন।");
                     }
                     
-                    if (currentBalance < amount) {
+                    if (currentBalance < totalDeduction) {
                         throw new Error("অপর্যাপ্ত ব্যালেন্স।");
                     }
 
                     const recipientDoc = await transaction.get(recipientDocRef);
                     const recipientBalance = recipientDoc.exists() ? recipientDoc.data().balance || 0 : 0;
 
-                    const newSenderBalance = currentBalance - amount;
+                    const newSenderBalance = currentBalance - totalDeduction;
                     const newRecipientBalance = recipientBalance + amount;
 
                     transaction.update(senderDocRef, { balance: newSenderBalance });
@@ -1072,6 +1170,7 @@
                     transaction.set(newSenderTxDocRef, {
                         type: 'send',
                         amount: amount,
+                        charge: charge,
                         description: `Send Money to ${recipient.name} (${recipient.mobile})`,
                         timestamp: serverTimestamp(),
                         status: 'completed',
@@ -1083,6 +1182,7 @@
                     transaction.set(newRecipientTxDocRef, {
                         type: 'receive',
                         amount: amount,
+                        charge: 0,
                         description: `Receive Money from ${senderData.name} (${senderData.mobile})`,
                         timestamp: serverTimestamp(),
                         status: 'received',
@@ -1266,50 +1366,51 @@
                     <div class="flex space-x-2 border-b border-gray-300">
                         <button id="add-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">অ্যাড মানি</button>
                         <button id="transfer-money-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">ট্রান্সফার মানি</button>
+                        <button id="charge-settings-tab" class="tab-btn py-2 px-4 text-sm font-semibold border-b-2 border-transparent focus:outline-none">চার্জ সেটিং</button>
                     </div>
-                    <!-- Status Filters -->
-                    <div id="status-filters" class="flex space-x-2">
-                        <button class="status-btn active py-1 px-3 text-xs font-medium rounded-full bg-cashpoint-pink text-white" data-status="pending">অপেক্ষমাণ</button>
-                        <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="completed">সম্পূর্ণ</button>
-                        <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="rejected">বাতিল</button>
+                     <!-- Dynamic Content Area -->
+                    <div id="admin-content-area" class="space-y-4 flex-grow overflow-y-auto">
+                         <!-- Content will be loaded here -->
                     </div>
-                    <div id="requests-list" class="space-y-4">
-                        <!-- Requests will be loaded here -->
-                    </div>
-                    <button id="back-to-dashboard-btn" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">ফিরে যান</button>
+                    <button id="back-to-dashboard-btn" class="w-full py-3 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105 mt-auto">ফিরে যান</button>
                 </div>
             `;
 
             let currentTab = 'add-money';
-            let currentStatus = 'pending';
 
             const addMoneyTab = document.getElementById('add-money-tab');
             const transferMoneyTab = document.getElementById('transfer-money-tab');
+            const chargeSettingsTab = document.getElementById('charge-settings-tab');
             
-            addMoneyTab.classList.add('add-money-active');
+            const setActiveTab = (tab) => {
+                addMoneyTab.classList.remove('add-money-active');
+                transferMoneyTab.classList.remove('transfer-money-active');
+                chargeSettingsTab.classList.remove('add-money-active');
+                if(tab) tab.classList.add('add-money-active');
+            };
+            
+            const loadTabContent = (tabName) => {
+                if (tabName === 'add-money' || tabName === 'transfer-money') {
+                     renderRequestFiltersAndList(tabName);
+                } else if (tabName === 'charge-settings') {
+                     renderChargeSettingsForm();
+                }
+            };
 
             addMoneyTab.addEventListener('click', () => {
                 currentTab = 'add-money';
-                addMoneyTab.classList.add('add-money-active');
-                transferMoneyTab.classList.remove('transfer-money-active');
-                loadRequests(currentTab, currentStatus);
+                setActiveTab(addMoneyTab);
+                loadTabContent(currentTab);
             });
             transferMoneyTab.addEventListener('click', () => {
                 currentTab = 'transfer-money';
-                transferMoneyTab.classList.add('transfer-money-active');
-                addMoneyTab.classList.remove('add-money-active');
-                loadRequests(currentTab, currentStatus);
+                setActiveTab(transferMoneyTab);
+                loadTabContent(currentTab);
             });
-            document.querySelectorAll('.status-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    document.querySelectorAll('.status-btn').forEach(btn => {
-                        btn.classList.remove('bg-cashpoint-pink', 'bg-blue-500', 'text-white');
-                        btn.classList.add('bg-gray-300', 'text-gray-700');
-                    });
-                    e.target.classList.add('bg-cashpoint-pink', 'text-white');
-                    currentStatus = e.target.dataset.status;
-                    loadRequests(currentTab, currentStatus);
-                });
+            chargeSettingsTab.addEventListener('click', () => {
+                currentTab = 'charge-settings';
+                setActiveTab(chargeSettingsTab);
+                loadTabContent(currentTab);
             });
 
             document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
@@ -1321,12 +1422,123 @@
                 });
             });
 
-            loadRequests(currentTab, currentStatus);
+            // Load initial tab
+            setActiveTab(addMoneyTab);
+            loadTabContent(currentTab);
         }
+
+        // Renders filters and list container for money requests
+        function renderRequestFiltersAndList(requestType) {
+            const adminContentArea = document.getElementById('admin-content-area');
+            adminContentArea.innerHTML = `
+                <!-- Status Filters -->
+                <div id="status-filters" class="flex space-x-2">
+                    <button class="status-btn active py-1 px-3 text-xs font-medium rounded-full bg-cashpoint-pink text-white" data-status="pending">অপেক্ষমাণ</button>
+                    <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="completed">সম্পূর্ণ</button>
+                    <button class="status-btn py-1 px-3 text-xs font-medium rounded-full bg-gray-300 text-gray-700" data-status="rejected">বাতিল</button>
+                </div>
+                <div id="requests-list" class="space-y-4">
+                    <!-- Requests will be loaded here -->
+                </div>
+            `;
+
+            let currentStatus = 'pending';
+            
+            document.querySelectorAll('.status-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    document.querySelectorAll('.status-btn').forEach(btn => {
+                        btn.classList.remove('bg-cashpoint-pink', 'text-white');
+                        btn.classList.add('bg-gray-300', 'text-gray-700');
+                    });
+                    e.target.classList.add('bg-cashpoint-pink', 'text-white');
+                    currentStatus = e.target.dataset.status;
+                    loadRequests(requestType, currentStatus);
+                });
+            });
+
+            loadRequests(requestType, currentStatus);
+        }
+
+        // Renders the form for charge settings
+        async function renderChargeSettingsForm() {
+            const adminContentArea = document.getElementById('admin-content-area');
+            adminContentArea.innerHTML = `<div class="text-center p-5">Loading...</div>`;
+            
+            const currentCharges = transactionCharges; // Use the global live variable
+
+            adminContentArea.innerHTML = `
+                <form id="charge-form" class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-2">সেন্ড মানি চার্জ</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="send-percentage" class="block text-sm font-medium text-gray-600">পার্সেন্টেজ (%)</label>
+                                <input type="number" step="0.01" id="send-percentage" value="${currentCharges.send.percentage}" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div>
+                                <label for="send-fixed" class="block text-sm font-medium text-gray-600">নির্দিষ্ট টাকা (৳)</label>
+                                <input type="number" step="0.01" id="send-fixed" value="${currentCharges.send.fixed}" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-2">টাকা ট্রান্সফার চার্জ</h3>
+                         <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="transfer-percentage" class="block text-sm font-medium text-gray-600">পার্সেন্টেজ (%)</label>
+                                <input type="number" step="0.01" id="transfer-percentage" value="${currentCharges.transfer.percentage}" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div>
+                                <label for="transfer-fixed" class="block text-sm font-medium text-gray-600">নির্দিষ্ট টাকা (৳)</label>
+                                <input type="number" step="0.01" id="transfer-fixed" value="${currentCharges.transfer.fixed}" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full py-2 bg-cashpoint-pink text-white font-bold rounded-lg shadow-md hover:bg-pink-700 transition-colors">পরিবর্তন সেভ করুন</button>
+                </form>
+            `;
+            
+            document.getElementById('charge-form').addEventListener('submit', handleSaveChargeSettings);
+        }
+
+        // Handles saving the new charge settings to Firestore
+        async function handleSaveChargeSettings(event) {
+            event.preventDefault();
+            showLoading(true);
+
+            const newCharges = {
+                send: {
+                    percentage: parseFloat(document.getElementById('send-percentage').value) || 0,
+                    fixed: parseFloat(document.getElementById('send-fixed').value) || 0
+                },
+                transfer: {
+                    percentage: parseFloat(document.getElementById('transfer-percentage').value) || 0,
+                    fixed: parseFloat(document.getElementById('transfer-fixed').value) || 0
+                }
+            };
+            
+            try {
+                const chargeConfigRef = doc(db, `artifacts/${appId}/public/charge_config/settings`);
+                await setDoc(chargeConfigRef, newCharges);
+                showMessage("চার্জের তথ্য সফলভাবে আপডেট হয়েছে।");
+            } catch (error) {
+                console.error("Error saving charge settings:", error);
+                showMessage("চার্জ সেটিং সেভ করতে সমস্যা হয়েছে।");
+            } finally {
+                showLoading(false);
+            }
+        }
+
 
         async function loadRequests(type, status) {
             showLoading(true);
             const requestsListEl = document.getElementById('requests-list');
+            if (!requestsListEl) { 
+                showLoading(false);
+                return; 
+            }
             requestsListEl.innerHTML = '';
             
             const collectionName = type === 'add-money' ? 'add_money_requests' : 'money_transfer_requests';
@@ -1449,7 +1661,7 @@
                 }
                 
                 // Refresh the list
-                loadRequests(requestType, 'pending');
+                renderRequestFiltersAndList(requestType);
 
             } catch (error) {
                 console.error("Error handling request action:", error);
@@ -1482,7 +1694,7 @@
         // Copy to clipboard function
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                showMessage("ইউজার আইডি কপি করা হয়েছে!");
+                showMessage("আইডি কপি করা হয়েছে!");
             }).catch(err => {
                 console.error('Failed to copy text: ', err);
                 showMessage("কপি করতে ব্যর্থ হয়েছে।");
@@ -1623,10 +1835,36 @@
             }
             showLoading(false);
         });
+        
+        async function listenForChargeUpdates() {
+            const chargeConfigRef = doc(db, `artifacts/${appId}/public/charge_config/settings`);
+            
+            const docSnap = await getDoc(chargeConfigRef);
+            if (!docSnap.exists()) {
+                try {
+                    await setDoc(chargeConfigRef, {
+                        send: { percentage: 2, fixed: 5 },
+                        transfer: { percentage: 1.5, fixed: 10 }
+                    });
+                } catch (error) {
+                    console.error("Failed to create default charge config:", error);
+                }
+            }
+
+            onSnapshot(chargeConfigRef, (doc) => {
+                if (doc.exists()) {
+                    transactionCharges = doc.data();
+                }
+            }, (error) => {
+                console.error("Error listening for charge updates:", error);
+            });
+        }
+
 
         // Initial sign-in with custom token or anonymously
         window.onload = async () => {
             showLoading(true);
+            await listenForChargeUpdates();
             try {
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
@@ -1698,6 +1936,10 @@
                     transactions.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestamp in memory
                     renderStatementPage(transactions);
                     showLoading(false);
+                }, (error) => {
+                    console.error("Error fetching transactions:", error);
+                    showMessage("লেনদেন আনতে সমস্যা হয়েছে।");
+                    showLoading(false);
                 });
                 menuSidebar.classList.remove('open');
             });
@@ -1705,3 +1947,4 @@
     </script>
 </body>
 </html>
+
