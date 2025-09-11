@@ -70,12 +70,12 @@
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
 
     <!-- Main Container -->
-    <div id="app-container" class="relative w-full max-w-sm bg-white shadow-xl rounded-2xl overflow-hidden min-h-[600px] flex flex-col">
+    <div id="app-container" class="relative w-full max-w-sm bg-white shadow-xl rounded-2xl overflow-hidden h-[95vh] max-h-[850px] flex flex-col">
         <!-- Message Box -->
         <div id="message-box" class="absolute top-4 left-1/2 -translate-x-1/2 z-50 p-3 rounded-lg text-sm transition-all duration-300 transform scale-0" style="background-color: #1a1a1a; color: white;"></div>
 
         <!-- Header -->
-        <header id="header" class="w-full gradient-bg text-white py-4 px-6 flex items-center justify-between shadow-md">
+        <header id="header" class="w-full gradient-bg text-white py-4 px-6 flex items-center justify-between shadow-md flex-shrink-0">
             <h1 class="text-2xl font-bold">CashPoint</h1>
             <div id="user-info-header" class="flex items-center space-x-2">
                 <span id="header-user-name" class="font-medium text-sm"></span>
@@ -144,7 +144,7 @@
         </aside>
 
         <!-- Bottom Navigation -->
-        <footer id="bottom-nav" class="w-full bg-white shadow-t-xl rounded-t-2xl py-3 px-4 flex justify-around items-center border-t border-gray-200">
+        <footer id="bottom-nav" class="w-full bg-white shadow-t-xl rounded-t-2xl py-3 px-4 flex justify-around items-center border-t border-gray-200 flex-shrink-0">
             <!-- Home button now has a new ID to make it functional -->
             <div id="home-btn" class="flex flex-col items-center text-cashpoint-pink cursor-pointer">
                 <i class="fas fa-home text-2xl"></i>
@@ -229,6 +229,13 @@
         const homeBtnMenu = document.getElementById('home-btn-menu');
         const statementBtnMenu = document.getElementById('statement-btn-menu');
         const adminSettingsBtn = document.getElementById('admin-settings-btn');
+
+        // Function to generate a unique transaction ID
+        function generateTransactionId() {
+            const timestamp = Date.now();
+            const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+            return `CP${timestamp}${randomPart}`;
+        }
         
         // Function to show a message
         function showMessage(text, duration = 3000) {
@@ -545,6 +552,7 @@
                             <div class="flex-grow min-w-0">
                                 <p class="font-semibold text-gray-800 truncate">${tx.description}</p>
                                 <p class="text-xs text-gray-500">${tx.timestamp ? new Date(tx.timestamp.toDate()).toLocaleString('en-US') : 'N/A'}</p>
+                                <p class="text-xs text-gray-400 font-mono">ID: ${tx.transactionId || 'N/A'}</p>
                             </div>
                             <div class="text-center" style="width: 65px;">
                                 ${statusText}
@@ -645,6 +653,7 @@
             }
             
             try {
+                const transactionId = generateTransactionId();
                 // Deduct money immediately and add a pending transaction record
                 await runTransaction(db, async (transaction) => {
                     const userDoc = await transaction.get(userDocRef);
@@ -669,7 +678,8 @@
                     amount: amount,
                     description: `Transfer to ${method.toUpperCase()} (${recipientNumber})`,
                     status: 'pending',
-                    timestamp: serverTimestamp()
+                    timestamp: serverTimestamp(),
+                    transactionId: transactionId
                 });
 
                 showMessage("আপনার ট্রান্সফার রিকোয়েস্ট সফলভাবে জমা হয়েছে।");
@@ -755,6 +765,7 @@
 
             showLoading(true);
             try {
+                const transactionId = generateTransactionId();
                 // Add a record in user's statement as 'pending'
                 const txCollectionRef = collection(db, `artifacts/${appId}/users/${currentUser.uid}/transactions`);
                 const newTxDocRef = await addDoc(txCollectionRef, {
@@ -762,7 +773,8 @@
                     amount: amount,
                     description: `Deposit via ${method.toUpperCase()}`,
                     status: 'pending',
-                    timestamp: serverTimestamp()
+                    timestamp: serverTimestamp(),
+                    transactionId: transactionId
                 });
                 
                 // Add transaction request to the collection with reference to the user's transaction
@@ -1013,9 +1025,9 @@
 
             showLoading(true);
 
-            // Using Firestore transaction for atomic balance update
             const senderDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
             const recipientDocRef = doc(db, `artifacts/${appId}/users/${recipient.uid}`);
+            const transactionId = generateTransactionId();
 
             try {
                 await runTransaction(db, async (transaction) => {
@@ -1028,7 +1040,6 @@
                     const currentBalance = senderData.balance || 0;
                     const savedPinHash = senderData.pinHash;
 
-                    // Verify PIN
                     if (hashPin(pin) !== savedPinHash) {
                         throw new Error("ভুল পিন।");
                     }
@@ -1038,7 +1049,7 @@
                     }
 
                     const recipientDoc = await transaction.get(recipientDocRef);
-                    const recipientBalance = recipientDoc.data().balance || 0;
+                    const recipientBalance = recipientDoc.exists() ? recipientDoc.data().balance || 0 : 0;
 
                     const newSenderBalance = currentBalance - amount;
                     const newRecipientBalance = recipientBalance + amount;
@@ -1046,24 +1057,27 @@
                     transaction.update(senderDocRef, { balance: newSenderBalance });
                     transaction.update(recipientDocRef, { balance: newRecipientBalance });
 
-                    // Add transaction records to both users
+                    // Add transaction records within the atomic operation
                     const senderTxCollectionRef = collection(db, `artifacts/${appId}/users/${currentUser.uid}/transactions`);
-                    const recipientTxCollectionRef = collection(db, `artifacts/${appId}/users/${recipient.uid}/transactions`);
-
-                    await addDoc(senderTxCollectionRef, {
+                    const newSenderTxDocRef = doc(senderTxCollectionRef);
+                    transaction.set(newSenderTxDocRef, {
                         type: 'send',
                         amount: amount,
                         description: `Send Money to ${recipient.name} (${recipient.mobile})`,
                         timestamp: serverTimestamp(),
-                        status: 'completed'
+                        status: 'completed',
+                        transactionId: transactionId
                     });
 
-                    await addDoc(recipientTxCollectionRef, {
+                    const recipientTxCollectionRef = collection(db, `artifacts/${appId}/users/${recipient.uid}/transactions`);
+                    const newRecipientTxDocRef = doc(recipientTxCollectionRef);
+                    transaction.set(newRecipientTxDocRef, {
                         type: 'receive',
                         amount: amount,
                         description: `Receive Money from ${senderData.name} (${senderData.mobile})`,
                         timestamp: serverTimestamp(),
-                        status: 'received'
+                        status: 'received',
+                        transactionId: transactionId
                     });
                 });
 
@@ -1073,7 +1087,6 @@
                 showMessage(error.message || "লেনদেন ব্যর্থ হয়েছে।");
             } finally {
                 showLoading(false);
-                // Return to dashboard after a short delay
                 setTimeout(() => {
                     const profileDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}`);
                     onSnapshot(profileDocRef, (docSnap) => {
@@ -1681,3 +1694,4 @@
     </script>
 </body>
 </html>
+
