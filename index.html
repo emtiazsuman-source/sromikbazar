@@ -64,6 +64,14 @@
         .transfer-money-card {
             border-left: 4px solid #3B82F6;
         }
+        /* Hide scrollbar for main content */
+        #main-content::-webkit-scrollbar {
+            display: none;
+        }
+        #main-content {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -144,7 +152,7 @@
         </aside>
 
         <!-- Bottom Navigation -->
-        <footer id="bottom-nav" class="w-full bg-white shadow-t-xl rounded-t-2xl py-3 px-4 flex justify-around items-center border-t border-gray-200 flex-shrink-0">
+        <footer id="bottom-nav" class="w-full bg-white shadow-t-xl rounded-t-2xl py-3 px-4 flex justify-around items-center border-t border-gray-200 flex-shrink-0 hidden">
             <!-- Home button now has a new ID to make it functional -->
             <div id="home-btn" class="flex flex-col items-center text-cashpoint-pink cursor-pointer">
                 <i class="fas fa-home text-2xl"></i>
@@ -229,6 +237,7 @@
         const homeBtnMenu = document.getElementById('home-btn-menu');
         const statementBtnMenu = document.getElementById('statement-btn-menu');
         const adminSettingsBtn = document.getElementById('admin-settings-btn');
+        const bottomNav = document.getElementById('bottom-nav');
 
         // Function to generate a unique transaction ID
         function generateTransactionId() {
@@ -1484,6 +1493,7 @@
         // Auth state change listener
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                bottomNav.classList.remove('hidden');
                 currentUser = user;
                 const profileDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
                 
@@ -1592,6 +1602,7 @@
 
 
             } else {
+                bottomNav.classList.add('hidden');
                 currentUser = null;
                 if (unsubscribeFromProfile) {
                     unsubscribeFromProfile();
@@ -1694,4 +1705,3 @@
     </script>
 </body>
 </html>
-
